@@ -32,9 +32,20 @@ const nav = [
   { to: "/investigations", label: "Investigations", icon: Search },
   { to: "/enforcement", label: "Enforcement Log", icon: ShieldBan },
   { to: "/reports", label: "Reports", icon: BarChart3 },
-  { to: "/admin", label: "Administration", icon: Settings },
+  {
+    to: "/admin",
+    label: "Administration",
+    icon: Settings,
+    children: [
+      { to: "/admin/rules", label: "Rules & thresholds" },
+      { to: "/admin/integrations", label: "Integrations" },
+      { to: "/admin/users", label: "Users & roles" },
+      { to: "/admin/consent", label: "Consent templates" },
+    ],
+  },
   { to: "/audit", label: "Audit Trail", icon: ScrollText },
 ] as const;
+
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { role, setRole, actor, alerts, resetDemo } = useEDD();
@@ -53,18 +64,37 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="flex-1 space-y-1 p-3">
           {nav
             .filter((item) => !hidden.has(item.to))
-            .map(({ to, label, icon: Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                activeOptions={{ exact: to === "/" }}
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                activeProps={{ className: "bg-sidebar-accent text-sidebar-accent-foreground font-medium" }}
-              >
-                <Icon className="size-4" />
-                {label}
-              </Link>
-            ))}
+            .map((item) => {
+              const { to, label, icon: Icon } = item;
+              const children = "children" in item ? item.children : undefined;
+              return (
+                <div key={to}>
+                  <Link
+                    to={to}
+                    activeOptions={{ exact: to === "/" }}
+                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/85 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    activeProps={{ className: "bg-sidebar-accent text-sidebar-accent-foreground font-medium" }}
+                  >
+                    <Icon className="size-4" />
+                    {label}
+                  </Link>
+                  {children && (
+                    <div className="mt-1 space-y-1 border-l border-sidebar-border pl-3 ml-5">
+                      {children.map((child) => (
+                        <Link
+                          key={child.to}
+                          to={child.to}
+                          className="block rounded-md px-3 py-1.5 text-xs text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          activeProps={{ className: "bg-sidebar-accent text-sidebar-accent-foreground font-medium" }}
+                        >
+                          {child.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
         </nav>
         <div className="border-t border-sidebar-border px-5 py-4 text-xs text-sidebar-foreground/70">
           AI/ML prioritises. Bank experts decide.

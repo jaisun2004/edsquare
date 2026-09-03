@@ -18,6 +18,11 @@ import { Route as EngagementRouteImport } from './routes/engagement'
 import { Route as InvestigationsRouteImport } from './routes/investigations'
 import { Route as NegativeDatabaseRouteImport } from './routes/negative-database'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminConsentRouteImport } from './routes/admin.consent'
+import { Route as AdminIntegrationsRouteImport } from './routes/admin.integrations'
+import { Route as AdminRulesRouteImport } from './routes/admin.rules'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as CasesIndexRouteImport } from './routes/cases.index'
 import { Route as CasesCaseIdRouteImport } from './routes/cases.$caseId'
 
@@ -66,6 +71,31 @@ const ReportsRoute = ReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConsentRoute = AdminConsentRouteImport.update({
+  id: '/consent',
+  path: '/consent',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRulesRoute = AdminRulesRouteImport.update({
+  id: '/rules',
+  path: '/rules',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
 const CasesIndexRoute = CasesIndexRouteImport.update({
   id: '/cases/',
   path: '/cases/',
@@ -79,7 +109,7 @@ const CasesCaseIdRoute = CasesCaseIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/alerts': typeof AlertsRoute
   '/audit': typeof AuditRoute
   '/enforcement': typeof EnforcementRoute
@@ -87,12 +117,16 @@ export interface FileRoutesByFullPath {
   '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/reports': typeof ReportsRoute
+  '/admin/consent': typeof AdminConsentRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/rules': typeof AdminRulesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
+  '/admin/': typeof AdminIndexRoute
   '/cases/': typeof CasesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/audit': typeof AuditRoute
   '/enforcement': typeof EnforcementRoute
@@ -100,13 +134,18 @@ export interface FileRoutesByTo {
   '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/reports': typeof ReportsRoute
+  '/admin/consent': typeof AdminConsentRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/rules': typeof AdminRulesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
+  '/admin': typeof AdminIndexRoute
   '/cases': typeof CasesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/alerts': typeof AlertsRoute
   '/audit': typeof AuditRoute
   '/enforcement': typeof EnforcementRoute
@@ -114,7 +153,12 @@ export interface FileRoutesById {
   '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/reports': typeof ReportsRoute
+  '/admin/consent': typeof AdminConsentRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/rules': typeof AdminRulesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
+  '/admin/': typeof AdminIndexRoute
   '/cases/': typeof CasesIndexRoute
 }
 export interface FileRouteTypes {
@@ -129,12 +173,16 @@ export interface FileRouteTypes {
     | '/investigations'
     | '/negative-database'
     | '/reports'
+    | '/admin/consent'
+    | '/admin/integrations'
+    | '/admin/rules'
+    | '/admin/users'
     | '/cases/$caseId'
+    | '/admin/'
     | '/cases/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/alerts'
     | '/audit'
     | '/enforcement'
@@ -142,7 +190,12 @@ export interface FileRouteTypes {
     | '/investigations'
     | '/negative-database'
     | '/reports'
+    | '/admin/consent'
+    | '/admin/integrations'
+    | '/admin/rules'
+    | '/admin/users'
     | '/cases/$caseId'
+    | '/admin'
     | '/cases'
   id:
     | '__root__'
@@ -155,13 +208,18 @@ export interface FileRouteTypes {
     | '/investigations'
     | '/negative-database'
     | '/reports'
+    | '/admin/consent'
+    | '/admin/integrations'
+    | '/admin/rules'
+    | '/admin/users'
     | '/cases/$caseId'
+    | '/admin/'
     | '/cases/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AlertsRoute: typeof AlertsRoute
   AuditRoute: typeof AuditRoute
   EnforcementRoute: typeof EnforcementRoute
@@ -238,6 +296,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/consent': {
+      id: '/admin/consent'
+      path: '/consent'
+      fullPath: '/admin/consent'
+      preLoaderRoute: typeof AdminConsentRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/integrations': {
+      id: '/admin/integrations'
+      path: '/integrations'
+      fullPath: '/admin/integrations'
+      preLoaderRoute: typeof AdminIntegrationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/rules': {
+      id: '/admin/rules'
+      path: '/rules'
+      fullPath: '/admin/rules'
+      preLoaderRoute: typeof AdminRulesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/cases/': {
       id: '/cases/'
       path: '/cases'
@@ -255,9 +348,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminConsentRoute: typeof AdminConsentRoute
+  AdminIntegrationsRoute: typeof AdminIntegrationsRoute
+  AdminRulesRoute: typeof AdminRulesRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminConsentRoute: AdminConsentRoute,
+  AdminIntegrationsRoute: AdminIntegrationsRoute,
+  AdminRulesRoute: AdminRulesRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AlertsRoute: AlertsRoute,
   AuditRoute: AuditRoute,
   EnforcementRoute: EnforcementRoute,
