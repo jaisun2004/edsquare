@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as EngagementRouteImport } from './routes/engagement'
+import { Route as InvestigationsRouteImport } from './routes/investigations'
 import { Route as NegativeDatabaseRouteImport } from './routes/negative-database'
 import { Route as CasesIndexRouteImport } from './routes/cases.index'
 import { Route as CasesCaseIdRouteImport } from './routes/cases.$caseId'
@@ -29,6 +30,11 @@ const AlertsRoute = AlertsRouteImport.update({
 const EngagementRoute = EngagementRouteImport.update({
   id: '/engagement',
   path: '/engagement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvestigationsRoute = InvestigationsRouteImport.update({
+  id: '/investigations',
+  path: '/investigations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NegativeDatabaseRoute = NegativeDatabaseRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/engagement': typeof EngagementRoute
+  '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/cases/': typeof CasesIndexRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/engagement': typeof EngagementRoute
+  '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/cases': typeof CasesIndexRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/engagement': typeof EngagementRoute
+  '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/cases/': typeof CasesIndexRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/engagement'
+    | '/investigations'
     | '/negative-database'
     | '/cases/$caseId'
     | '/cases/'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/engagement'
+    | '/investigations'
     | '/negative-database'
     | '/cases/$caseId'
     | '/cases'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alerts'
     | '/engagement'
+    | '/investigations'
     | '/negative-database'
     | '/cases/$caseId'
     | '/cases/'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlertsRoute: typeof AlertsRoute
   EngagementRoute: typeof EngagementRoute
+  InvestigationsRoute: typeof InvestigationsRoute
   NegativeDatabaseRoute: typeof NegativeDatabaseRoute
   CasesCaseIdRoute: typeof CasesCaseIdRoute
   CasesIndexRoute: typeof CasesIndexRoute
@@ -129,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/engagement'
       fullPath: '/engagement'
       preLoaderRoute: typeof EngagementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/investigations': {
+      id: '/investigations'
+      path: '/investigations'
+      fullPath: '/investigations'
+      preLoaderRoute: typeof InvestigationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/negative-database': {
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlertsRoute: AlertsRoute,
   EngagementRoute: EngagementRoute,
+  InvestigationsRoute: InvestigationsRoute,
   NegativeDatabaseRoute: NegativeDatabaseRoute,
   CasesCaseIdRoute: CasesCaseIdRoute,
   CasesIndexRoute: CasesIndexRoute,
