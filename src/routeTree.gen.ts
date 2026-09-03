@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AlertsRouteImport } from './routes/alerts'
+import { Route as AuditRouteImport } from './routes/audit'
 import { Route as EnforcementRouteImport } from './routes/enforcement'
 import { Route as EngagementRouteImport } from './routes/engagement'
 import { Route as InvestigationsRouteImport } from './routes/investigations'
@@ -33,6 +34,11 @@ const AdminRoute = AdminRouteImport.update({
 const AlertsRoute = AlertsRouteImport.update({
   id: '/alerts',
   path: '/alerts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EnforcementRoute = EnforcementRouteImport.update({
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
+  '/audit': typeof AuditRoute
   '/enforcement': typeof EnforcementRoute
   '/engagement': typeof EngagementRoute
   '/investigations': typeof InvestigationsRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
+  '/audit': typeof AuditRoute
   '/enforcement': typeof EnforcementRoute
   '/engagement': typeof EngagementRoute
   '/investigations': typeof InvestigationsRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
+  '/audit': typeof AuditRoute
   '/enforcement': typeof EnforcementRoute
   '/engagement': typeof EngagementRoute
   '/investigations': typeof InvestigationsRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/alerts'
+    | '/audit'
     | '/enforcement'
     | '/engagement'
     | '/investigations'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/alerts'
+    | '/audit'
     | '/enforcement'
     | '/engagement'
     | '/investigations'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/alerts'
+    | '/audit'
     | '/enforcement'
     | '/engagement'
     | '/investigations'
@@ -151,6 +163,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AlertsRoute: typeof AlertsRoute
+  AuditRoute: typeof AuditRoute
   EnforcementRoute: typeof EnforcementRoute
   EngagementRoute: typeof EngagementRoute
   InvestigationsRoute: typeof InvestigationsRoute
@@ -181,6 +194,13 @@ declare module '@tanstack/react-router' {
       path: '/alerts'
       fullPath: '/alerts'
       preLoaderRoute: typeof AlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/enforcement': {
@@ -239,6 +259,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AlertsRoute: AlertsRoute,
+  AuditRoute: AuditRoute,
   EnforcementRoute: EnforcementRoute,
   EngagementRoute: EngagementRoute,
   InvestigationsRoute: InvestigationsRoute,
