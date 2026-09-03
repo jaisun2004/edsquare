@@ -32,9 +32,20 @@ const nav = [
   { to: "/investigations", label: "Investigations", icon: Search },
   { to: "/enforcement", label: "Enforcement Log", icon: ShieldBan },
   { to: "/reports", label: "Reports", icon: BarChart3 },
-  { to: "/admin", label: "Administration", icon: Settings },
+  {
+    to: "/admin",
+    label: "Administration",
+    icon: Settings,
+    children: [
+      { to: "/admin/rules", label: "Rules & thresholds" },
+      { to: "/admin/integrations", label: "Integrations" },
+      { to: "/admin/users", label: "Users & roles" },
+      { to: "/admin/consent", label: "Consent templates" },
+    ],
+  },
   { to: "/audit", label: "Audit Trail", icon: ScrollText },
 ] as const;
+
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { role, setRole, actor, alerts, resetDemo } = useEDD();
