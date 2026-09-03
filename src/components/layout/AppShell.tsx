@@ -96,8 +96,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               );
             })}
         </nav>
-
-        </nav>
         <div className="border-t border-sidebar-border px-5 py-4 text-xs text-sidebar-foreground/70">
           AI/ML prioritises. Bank experts decide.
         </div>
