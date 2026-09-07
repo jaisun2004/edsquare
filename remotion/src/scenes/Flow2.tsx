@@ -24,7 +24,7 @@ export const Flow2: React.FC<{ dur: number }> = ({ dur }) => {
     <SceneFade dur={dur}>
       <AbsoluteFill style={{ padding: "90px 110px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
-          <FlowBadge>FLOW 2</FlowBadge>
+          <FlowBadge>ENGAGEMENT</FlowBadge>
           <Title size={48} delay={6}>
             AI-led customer engagement
           </Title>
@@ -83,7 +83,7 @@ export const Flow2: React.FC<{ dur: number }> = ({ dur }) => {
 
         <AbsoluteFill
           style={{
-            top: 210,
+            top: 190,
             opacity: interpolate(frame, [shotIn, shotIn + 20], [0, 1], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
@@ -95,7 +95,7 @@ export const Flow2: React.FC<{ dur: number }> = ({ dur }) => {
               <div style={{ fontFamily: body, fontWeight: 600, fontSize: 22, color: C.muted, marginBottom: 12 }}>
                 Engagement Center — outreach, consent and responses in one place
               </div>
-              <Shot src="images/engagement.png" delay={shotIn + 4} width={1400} height={620} scale={0.98} />
+              <Shot src="images/engagement.png" delay={shotIn + 4} width={1040} />
             </div>
           </div>
         </AbsoluteFill>

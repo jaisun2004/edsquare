@@ -23,11 +23,11 @@ export const Results: React.FC<{ dur: number }> = ({ dur }) => {
         <div style={{ display: "flex", gap: 40, marginTop: 40, justifyContent: "center" }}>
           <div>
             <Label>Enforcement log</Label>
-            <Shot src="images/enforcement.png" delay={20} width={820} height={520} scale={0.68} />
+            <Shot src="images/enforcement.png" delay={20} width={830} />
           </div>
           <div style={{ marginTop: 60 }}>
             <Label>Reports &amp; MIS</Label>
-            <Shot src="images/reports.png" delay={40} width={780} height={460} scale={0.64} tilt={0.8} />
+            <Shot src="images/reports.png" delay={40} width={780} tilt={0.8} />
           </div>
         </div>
       </AbsoluteFill>

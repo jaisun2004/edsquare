@@ -15,7 +15,7 @@ export const Flow1: React.FC<{ dur: number }> = ({ dur }) => {
     <SceneFade dur={dur}>
       <AbsoluteFill style={{ padding: "90px 110px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
-          <FlowBadge>FLOW 1</FlowBadge>
+          <FlowBadge>DETECTION</FlowBadge>
           <Title size={48} delay={6}>
             Initial detection &amp; decision
           </Title>
@@ -59,11 +59,11 @@ export const Flow1: React.FC<{ dur: number }> = ({ dur }) => {
           <div style={{ display: "flex", gap: 40, justifyContent: "center", alignItems: "flex-start" }}>
             <div>
               <Label>Command dashboard</Label>
-              <Shot src="images/dashboard.png" delay={shotIn + 4} width={880} height={520} scale={0.66} />
+              <Shot src="images/dashboard.png" delay={shotIn + 4} width={860} />
             </div>
             <div style={{ marginTop: 60 }}>
               <Label>Alert inbox</Label>
-              <Shot src="images/alerts.png" delay={shotIn + 22} width={760} height={470} scale={0.62} tilt={0.8} />
+              <Shot src="images/alerts.png" delay={shotIn + 22} width={800} tilt={0.8} />
             </div>
           </div>
         </AbsoluteFill>
