@@ -25,9 +25,9 @@ await renderMedia({
   outputLocation: "/tmp/vo/edsquare-silent.mp4",
   puppeteerInstance: browser,
   muted: true,
-  concurrency: 2,
+  concurrency: 8,
   onProgress: ({ progress }) => {
-    if (Math.round(progress * 100) % 10 === 0) console.log("progress", Math.round(progress * 100));
+    if (Math.round(progress * 100) % 2 === 0) console.log("progress", Math.round(progress * 100));
   },
 });
 
