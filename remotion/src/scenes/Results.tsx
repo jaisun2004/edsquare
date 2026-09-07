@@ -20,14 +20,14 @@ export const Results: React.FC<{ dur: number }> = ({ dur }) => {
         >
           Every action pushed to core banking with reason, approver and a full audit trail.
         </div>
-        <div style={{ display: "flex", gap: 40, marginTop: 40, justifyContent: "center" }}>
+        <div style={{ display: "flex", gap: 40, marginTop: 40, justifyContent: "center", alignItems: "flex-start" }}>
           <div>
             <Label>Enforcement log</Label>
             <Shot src="images/enforcement.png" delay={20} width={830} />
           </div>
-          <div style={{ marginTop: 60 }}>
+          <div>
             <Label>Reports &amp; MIS</Label>
-            <Shot src="images/reports.png" delay={40} width={780} tilt={0.8} />
+            <Shot src="images/reports.png" delay={40} width={830} />
           </div>
         </div>
       </AbsoluteFill>
