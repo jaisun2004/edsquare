@@ -77,7 +77,9 @@ export const Title: React.FC<{ children: React.ReactNode; delay?: number; size?:
   );
 };
 
-/** App screenshot inside light browser chrome, with a slow parallax push-in. */
+/** App screenshot inside light browser chrome. Shows the full screen, uncropped. */
+const SHOT_RATIO = 2880 / 1800;
+
 export const Shot: React.FC<{
   src: string;
   delay?: number;
@@ -87,11 +89,12 @@ export const Shot: React.FC<{
   scale?: number;
   style?: React.CSSProperties;
   tilt?: number;
-}> = ({ src, delay = 0, width = 1080, height = 660, objectPosition = "left top", scale = 1, style, tilt = 0 }) => {
+}> = ({ src, delay = 0, width = 1080, height, style, tilt = 0 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const s = spring({ frame: frame - delay, fps, config: { damping: 200 } });
-  const push = interpolate(frame - delay, [0, 400], [1, 1.06], { extrapolateRight: "clamp", extrapolateLeft: "clamp" });
+  const push = interpolate(frame - delay, [0, 400], [1, 1.03], { extrapolateRight: "clamp", extrapolateLeft: "clamp" });
+  const innerHeight = height ?? Math.round(width / SHOT_RATIO);
   return (
     <div
       style={{
@@ -121,16 +124,16 @@ export const Shot: React.FC<{
           <div key={c} style={{ width: 10, height: 10, borderRadius: 10, background: c }} />
         ))}
       </div>
-      <div style={{ height, overflow: "hidden" }}>
+      <div style={{ height: innerHeight, overflow: "hidden", background: C.card }}>
         <Img
           src={staticFile(src)}
           style={{
             width: "100%",
             height: "100%",
-            objectFit: "cover",
-            objectPosition,
-            transform: `scale(${scale * push})`,
-            transformOrigin: "left top",
+            objectFit: "contain",
+            objectPosition: "center center",
+            transform: `scale(${push})`,
+            transformOrigin: "center center",
           }}
         />
       </div>
