@@ -17,9 +17,9 @@ const capabilities: { role: keyof typeof roleLabels; summary: string }[] = [
 export const Route = createFileRoute("/admin/users")({
   head: () => ({
     meta: [
-      { title: "Users & Roles — Sentinel EDD" },
+      { title: "Users & Roles — EDSquare" },
       { name: "description", content: "Platform users, their assigned EDD roles and what each role is permitted to do." },
-      { property: "og:title", content: "Users & Roles — Sentinel EDD" },
+      { property: "og:title", content: "Users & Roles — EDSquare" },
       { property: "og:description", content: "Role assignments and the permission model behind EDD decisions." },
     ],
   }),

@@ -11,9 +11,9 @@ import { can } from "@/lib/roles";
 export const Route = createFileRoute("/investigations")({
   head: () => ({
     meta: [
-      { title: "Investigations Workbench — Sentinel EDD" },
+      { title: "Investigations Workbench — EDSquare" },
       { name: "description", content: "Prioritised investigator worklist sorted by risk and SLA, with next-case claiming." },
-      { property: "og:title", content: "Investigations Workbench — Sentinel EDD" },
+      { property: "og:title", content: "Investigations Workbench — EDSquare" },
       { property: "og:description", content: "Work the highest-risk EDD cases assigned to you or your team." },
     ],
   }),

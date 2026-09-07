@@ -15,9 +15,9 @@ import { can } from "@/lib/roles";
 export const Route = createFileRoute("/cases/")({
   head: () => ({
     meta: [
-      { title: "Case Queue — Sentinel EDD" },
+      { title: "Case Queue — EDSquare" },
       { name: "description", content: "Track enhanced due diligence cases across triage, enrichment, engagement, review and decision stages." },
-      { property: "og:title", content: "Case Queue — Sentinel EDD" },
+      { property: "og:title", content: "Case Queue — EDSquare" },
       { property: "og:description", content: "Kanban and table views of every open EDD case with SLA and risk visibility." },
     ],
   }),

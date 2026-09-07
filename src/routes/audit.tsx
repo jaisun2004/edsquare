@@ -13,9 +13,9 @@ import { roleLabels } from "@/lib/roles";
 export const Route = createFileRoute("/audit")({
   head: () => ({
     meta: [
-      { title: "Audit Trail — Sentinel EDD" },
+      { title: "Audit Trail — EDSquare" },
       { name: "description", content: "Read-only chronological log of every actor, action and before/after state change across the platform." },
-      { property: "og:title", content: "Audit Trail — Sentinel EDD" },
+      { property: "og:title", content: "Audit Trail — EDSquare" },
       { property: "og:description", content: "Immutable audit evidence for regulators and internal review." },
     ],
   }),

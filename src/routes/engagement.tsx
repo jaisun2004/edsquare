@@ -11,9 +11,9 @@ import { useEDD } from "@/lib/edd-store";
 export const Route = createFileRoute("/engagement")({
   head: () => ({
     meta: [
-      { title: "Engagement Center — Sentinel EDD" },
+      { title: "Engagement Center — EDSquare" },
       { name: "description", content: "Cross-case AI calling and messaging activity, channel performance and outreach template library." },
-      { property: "og:title", content: "Engagement Center — Sentinel EDD" },
+      { property: "og:title", content: "Engagement Center — EDSquare" },
       { property: "og:description", content: "Monitor customer outreach across AI call, WhatsApp, email and SMS channels." },
     ],
   }),

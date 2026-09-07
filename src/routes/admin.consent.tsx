@@ -19,9 +19,9 @@ const bodies: Record<string, string> = {
 export const Route = createFileRoute("/admin/consent")({
   head: () => ({
     meta: [
-      { title: "Consent Templates — Sentinel EDD" },
+      { title: "Consent Templates — EDSquare" },
       { name: "description", content: "DPDP notices and consent templates used during enrichment and customer engagement." },
-      { property: "og:title", content: "Consent Templates — Sentinel EDD" },
+      { property: "og:title", content: "Consent Templates — EDSquare" },
       { property: "og:description", content: "Versioned DPDP notices, call recording consent and retention disclosures." },
     ],
   }),
