@@ -89,7 +89,7 @@ export const Intro: React.FC<{ dur: number }> = ({ dur }) => {
             </div>
           </div>
           <div style={{ flex: 1 }}>
-            <Shot src="images/dashboard.png" delay={40} width={860} height={560} scale={0.62} tilt={-1.2} />
+            <Shot src="images/dashboard.png" delay={40} width={860} height={560} scale={0.62} />
           </div>
         </div>
       </AbsoluteFill>
