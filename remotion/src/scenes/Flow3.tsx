@@ -47,11 +47,11 @@ export const Flow3: React.FC<{ dur: number }> = ({ dur }) => {
           <div style={{ display: "flex", gap: 40, justifyContent: "center", alignItems: "flex-start" }}>
             <div>
               <Label>Investigations workbench</Label>
-              <Shot src="images/investigations.png" delay={shotIn + 4} width={860} />
+              <Shot src="images/investigations.png" delay={shotIn + 4} width={830} />
             </div>
-            <div style={{ marginTop: 60 }}>
+            <div>
               <Label>Case detail &amp; evidence</Label>
-              <Shot src="images/case-detail.png" delay={shotIn + 22} width={800} tilt={0.8} />
+              <Shot src="images/case-detail.png" delay={shotIn + 22} width={830} />
             </div>
           </div>
         </AbsoluteFill>
