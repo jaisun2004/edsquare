@@ -18,9 +18,9 @@ const descriptions: Record<string, string> = {
 export const Route = createFileRoute("/admin/integrations")({
   head: () => ({
     meta: [
-      { title: "Integrations — Sentinel EDD" },
+      { title: "Integrations — EDSquare" },
       { name: "description", content: "Enable or disable core banking, Negative Database, telco, OSINT and engagement integrations." },
-      { property: "og:title", content: "Integrations — Sentinel EDD" },
+      { property: "og:title", content: "Integrations — EDSquare" },
       { property: "og:description", content: "Connected services powering enrichment, engagement and enforcement." },
     ],
   }),

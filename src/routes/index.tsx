@@ -13,9 +13,9 @@ import { roleLabels } from "@/lib/roles";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "EDD Command Dashboard — Sentinel EDD" },
+      { title: "EDD Command Dashboard — EDSquare" },
       { name: "description", content: "Role-aware dashboard for digital enhanced due diligence: open cases, SLA breaches, risk mix and the priority worklist." },
-      { property: "og:title", content: "EDD Command Dashboard — Sentinel EDD" },
+      { property: "og:title", content: "EDD Command Dashboard — EDSquare" },
       { property: "og:description", content: "Monitor mule and digital-scam case flow from alert to enforcement." },
     ],
   }),

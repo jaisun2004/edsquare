@@ -14,9 +14,9 @@ import { useEDD } from "@/lib/edd-store";
 export const Route = createFileRoute("/negative-database")({
   head: () => ({
     meta: [
-      { title: "Negative Database — Sentinel EDD" },
+      { title: "Negative Database — EDSquare" },
       { name: "description", content: "Search known scam UPI handles, mobiles, accounts and domains with source evidence and linked identifiers." },
-      { property: "og:title", content: "Negative Database — Sentinel EDD" },
+      { property: "og:title", content: "Negative Database — EDSquare" },
       { property: "og:description", content: "Look up scam identifiers and attach evidence to an open EDD case." },
     ],
   }),

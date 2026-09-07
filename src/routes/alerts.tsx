@@ -17,9 +17,9 @@ import { can } from "@/lib/roles";
 export const Route = createFileRoute("/alerts")({
   head: () => ({
     meta: [
-      { title: "Alert Inbox — Sentinel EDD" },
+      { title: "Alert Inbox — EDSquare" },
       { name: "description", content: "Triage incoming money-mule and digital-scam alerts from AML, risk-model and negative-database sources." },
-      { property: "og:title", content: "Alert Inbox — Sentinel EDD" },
+      { property: "og:title", content: "Alert Inbox — EDSquare" },
       { property: "og:description", content: "Run pre-EDD triage on incoming suspicious-account alerts." },
     ],
   }),

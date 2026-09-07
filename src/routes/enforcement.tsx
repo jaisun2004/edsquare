@@ -14,9 +14,9 @@ import { useEDD } from "@/lib/edd-store";
 export const Route = createFileRoute("/enforcement")({
   head: () => ({
     meta: [
-      { title: "Enforcement Log — Sentinel EDD" },
+      { title: "Enforcement Log — EDSquare" },
       { name: "description", content: "Immutable record of account block and unblock actions with decision maker, approver and downstream status." },
-      { property: "og:title", content: "Enforcement Log — Sentinel EDD" },
+      { property: "og:title", content: "Enforcement Log — EDSquare" },
       { property: "og:description", content: "Every block and unblock action with approval trail and core-banking status." },
     ],
   }),

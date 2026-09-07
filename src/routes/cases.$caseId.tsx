@@ -20,9 +20,9 @@ import type { Channel, Recommendation } from "@/data/edd";
 export const Route = createFileRoute("/cases/$caseId")({
   head: () => ({
     meta: [
-      { title: "Case Detail — Sentinel EDD" },
+      { title: "Case Detail — EDSquare" },
       { name: "description", content: "Full enhanced due diligence workspace: intelligence, engagement, investigation rationale and enforcement decision." },
-      { property: "og:title", content: "Case Detail — Sentinel EDD" },
+      { property: "og:title", content: "Case Detail — EDSquare" },
       { property: "og:description", content: "Investigate a suspected mule account and record the enforcement decision." },
     ],
   }),

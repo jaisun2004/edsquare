@@ -9,9 +9,9 @@ import { useEDD } from "@/lib/edd-store";
 export const Route = createFileRoute("/reports")({
   head: () => ({
     meta: [
-      { title: "Reports & Analytics — Sentinel EDD" },
+      { title: "Reports & Analytics — EDSquare" },
       { name: "description", content: "Portfolio analytics on EDD volumes, risk mix, stage distribution and enforcement outcomes." },
-      { property: "og:title", content: "Reports & Analytics — Sentinel EDD" },
+      { property: "og:title", content: "Reports & Analytics — EDSquare" },
       { property: "og:description", content: "Trend and outcome analytics for the digital EDD programme." },
     ],
   }),

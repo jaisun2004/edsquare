@@ -13,9 +13,9 @@ import { useEDD } from "@/lib/edd-store";
 export const Route = createFileRoute("/admin/rules")({
   head: () => ({
     meta: [
-      { title: "Rules & Thresholds — Sentinel EDD" },
+      { title: "Rules & Thresholds — EDSquare" },
       { name: "description", content: "Manage the EDD rule catalogue, risk bands, thresholds and scoring weights." },
-      { property: "og:title", content: "Rules & Thresholds — Sentinel EDD" },
+      { property: "og:title", content: "Rules & Thresholds — EDSquare" },
       { property: "og:description", content: "Risk bands and the full decision-rule catalogue with weights and toggles." },
     ],
   }),
