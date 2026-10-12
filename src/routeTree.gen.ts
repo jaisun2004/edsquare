@@ -27,6 +27,8 @@ import { Route as CasesCaseIdRouteImport } from './routes/cases.$caseId'
 import { Route as AdminRulesIndexRouteImport } from './routes/admin.rules.index'
 import { Route as AdminRulesRuleIdRouteImport } from './routes/admin.rules.$ruleId'
 import { Route as AdminRulesNewRouteImport } from './routes/admin.rules.new'
+import { Route as AdminSourcesIndexRouteImport } from './routes/admin.sources.index'
+import { Route as AdminSourcesSourceIdRouteImport } from './routes/admin.sources.$sourceId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -118,6 +120,16 @@ const AdminRulesNewRoute = AdminRulesNewRouteImport.update({
   path: '/rules/new',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSourcesIndexRoute = AdminSourcesIndexRouteImport.update({
+  id: '/sources/',
+  path: '/sources/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSourcesSourceIdRoute = AdminSourcesSourceIdRouteImport.update({
+  id: '/sources/$sourceId',
+  path: '/sources/$sourceId',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -137,7 +149,9 @@ export interface FileRoutesByFullPath {
   '/cases/': typeof CasesIndexRoute
   '/admin/rules/$ruleId': typeof AdminRulesRuleIdRoute
   '/admin/rules/new': typeof AdminRulesNewRoute
+  '/admin/sources/$sourceId': typeof AdminSourcesSourceIdRoute
   '/admin/rules/': typeof AdminRulesIndexRoute
+  '/admin/sources/': typeof AdminSourcesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -156,7 +170,9 @@ export interface FileRoutesByTo {
   '/cases': typeof CasesIndexRoute
   '/admin/rules/$ruleId': typeof AdminRulesRuleIdRoute
   '/admin/rules/new': typeof AdminRulesNewRoute
+  '/admin/sources/$sourceId': typeof AdminSourcesSourceIdRoute
   '/admin/rules': typeof AdminRulesIndexRoute
+  '/admin/sources': typeof AdminSourcesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -177,7 +193,9 @@ export interface FileRoutesById {
   '/cases/': typeof CasesIndexRoute
   '/admin/rules/$ruleId': typeof AdminRulesRuleIdRoute
   '/admin/rules/new': typeof AdminRulesNewRoute
+  '/admin/sources/$sourceId': typeof AdminSourcesSourceIdRoute
   '/admin/rules/': typeof AdminRulesIndexRoute
+  '/admin/sources/': typeof AdminSourcesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -199,7 +217,9 @@ export interface FileRouteTypes {
     | '/cases/'
     | '/admin/rules/$ruleId'
     | '/admin/rules/new'
+    | '/admin/sources/$sourceId'
     | '/admin/rules/'
+    | '/admin/sources/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -218,7 +238,9 @@ export interface FileRouteTypes {
     | '/cases'
     | '/admin/rules/$ruleId'
     | '/admin/rules/new'
+    | '/admin/sources/$sourceId'
     | '/admin/rules'
+    | '/admin/sources'
   id:
     | '__root__'
     | '/'
@@ -238,7 +260,9 @@ export interface FileRouteTypes {
     | '/cases/'
     | '/admin/rules/$ruleId'
     | '/admin/rules/new'
+    | '/admin/sources/$sourceId'
     | '/admin/rules/'
+    | '/admin/sources/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -383,6 +407,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRulesNewRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/sources/': {
+      id: '/admin/sources/'
+      path: '/sources'
+      fullPath: '/admin/sources/'
+      preLoaderRoute: typeof AdminSourcesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/sources/$sourceId': {
+      id: '/admin/sources/$sourceId'
+      path: '/sources/$sourceId'
+      fullPath: '/admin/sources/$sourceId'
+      preLoaderRoute: typeof AdminSourcesSourceIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -393,7 +431,9 @@ interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   AdminRulesRuleIdRoute: typeof AdminRulesRuleIdRoute
   AdminRulesNewRoute: typeof AdminRulesNewRoute
+  AdminSourcesSourceIdRoute: typeof AdminSourcesSourceIdRoute
   AdminRulesIndexRoute: typeof AdminRulesIndexRoute
+  AdminSourcesIndexRoute: typeof AdminSourcesIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -403,7 +443,9 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   AdminRulesRuleIdRoute: AdminRulesRuleIdRoute,
   AdminRulesNewRoute: AdminRulesNewRoute,
+  AdminSourcesSourceIdRoute: AdminSourcesSourceIdRoute,
   AdminRulesIndexRoute: AdminRulesIndexRoute,
+  AdminSourcesIndexRoute: AdminSourcesIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

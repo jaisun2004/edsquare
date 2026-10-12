@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useEDD } from "@/lib/edd-store";
-import { ago, fmt } from "@/routes/admin.sources.index";
+import { ago, fmt } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/sources/$sourceId")({
   head: ({ params }) => ({
