@@ -21,7 +21,6 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminConsentRouteImport } from './routes/admin.consent'
 import { Route as AdminIntegrationsRouteImport } from './routes/admin.integrations'
-import { Route as AdminRulesRouteImport } from './routes/admin.rules'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as CasesIndexRouteImport } from './routes/cases.index'
 import { Route as CasesCaseIdRouteImport } from './routes/cases.$caseId'
@@ -86,11 +85,6 @@ const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
   path: '/integrations',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminRulesRoute = AdminRulesRouteImport.update({
-  id: '/rules',
-  path: '/rules',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -119,7 +113,6 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
-  '/admin/rules': typeof AdminRulesRoute
   '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -136,7 +129,6 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
-  '/admin/rules': typeof AdminRulesRoute
   '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/admin': typeof AdminIndexRoute
@@ -155,7 +147,6 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
-  '/admin/rules': typeof AdminRulesRoute
   '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -175,7 +166,6 @@ export interface FileRouteTypes {
     | '/reports'
     | '/admin/consent'
     | '/admin/integrations'
-    | '/admin/rules'
     | '/admin/users'
     | '/cases/$caseId'
     | '/admin/'
@@ -192,7 +182,6 @@ export interface FileRouteTypes {
     | '/reports'
     | '/admin/consent'
     | '/admin/integrations'
-    | '/admin/rules'
     | '/admin/users'
     | '/cases/$caseId'
     | '/admin'
@@ -210,7 +199,6 @@ export interface FileRouteTypes {
     | '/reports'
     | '/admin/consent'
     | '/admin/integrations'
-    | '/admin/rules'
     | '/admin/users'
     | '/cases/$caseId'
     | '/admin/'
@@ -317,13 +305,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIntegrationsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/rules': {
-      id: '/admin/rules'
-      path: '/rules'
-      fullPath: '/admin/rules'
-      preLoaderRoute: typeof AdminRulesRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/users': {
       id: '/admin/users'
       path: '/users'
@@ -351,7 +332,6 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminConsentRoute: typeof AdminConsentRoute
   AdminIntegrationsRoute: typeof AdminIntegrationsRoute
-  AdminRulesRoute: typeof AdminRulesRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -359,7 +339,6 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminConsentRoute: AdminConsentRoute,
   AdminIntegrationsRoute: AdminIntegrationsRoute,
-  AdminRulesRoute: AdminRulesRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
