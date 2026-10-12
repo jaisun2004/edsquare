@@ -5,7 +5,6 @@ import {
   cases as seedCases,
   enforcement as seedEnforcement,
   negbase as seedNegbase,
-  rules as seedRules,
   gradeForScore,
   type Alert,
   type AuditEntry,
@@ -15,11 +14,22 @@ import {
   type NegbaseRecord,
   type Recommendation,
   type Role,
-  type Rule,
   type Stage,
   type TimelineEntry,
 } from "@/data/edd";
 import { roleActors } from "@/lib/roles";
+import {
+  seedRuleDefs,
+  seedRuleGroups,
+  seedRuleSets,
+  type PolicyVersion,
+  type RuleDef,
+  type RuleGroup,
+  type RuleSet,
+  type Strategy,
+} from "@/data/policy";
+import { alertAttributes, attributes as seedAttributes, dataSources as seedSources, type AttrMap, type Attribute, type DataSource } from "@/data/sources";
+import { availableAttrs, runPolicy, type PolicyResult } from "@/lib/rule-engine";
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
@@ -32,6 +42,7 @@ export interface TriageResult {
   signals: { label: string; weight: number; detail: string }[];
   rulesTriggered: string[];
   segment: string;
+  policy: PolicyResult;
 }
 
 interface StoreValue {
@@ -40,7 +51,25 @@ interface StoreValue {
   setRole: (role: Role) => void;
   alerts: Alert[];
   cases: EDDCase[];
-  rules: Rule[];
+  rules: RuleDef[];
+  ruleSets: RuleSet[];
+  ruleGroups: RuleGroup[];
+  sources: DataSource[];
+  attributes: Attribute[];
+  policyVersions: PolicyVersion[];
+  attrsFor: (alertId: string) => AttrMap;
+  evaluate: (alertId: string) => PolicyResult;
+  addSource: (source: DataSource, newAttributes: Attribute[]) => void;
+  toggleSource: (sourceId: string) => void;
+  syncSource: (sourceId: string) => void;
+  upsertRule: (rule: RuleDef, note: string) => void;
+  retireRule: (ruleId: string) => void;
+  approveRule: (ruleId: string) => void;
+  moveRuleSet: (setId: string, dir: -1 | 1) => void;
+  setStrategy: (setId: string, strategy: Strategy) => void;
+  setRulePriority: (ruleId: string, priority: number) => void;
+  publishPolicy: (note: string) => void;
+  rollbackPolicy: (version: string) => void;
   negbase: NegbaseRecord[];
   enforcement: EnforcementEntry[];
   audit: AuditEntry[];
@@ -66,7 +95,14 @@ export function EDDProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>("analyst");
   const [alerts, setAlerts] = useState<Alert[]>(() => clone(seedAlerts));
   const [cases, setCases] = useState<EDDCase[]>(() => clone(seedCases));
-  const [rules, setRules] = useState<Rule[]>(() => clone(seedRules));
+  const [rules, setRules] = useState<RuleDef[]>(() => clone(seedRuleDefs));
+  const [ruleSets, setRuleSets] = useState<RuleSet[]>(() => clone(seedRuleSets));
+  const [ruleGroups] = useState<RuleGroup[]>(() => clone(seedRuleGroups));
+  const [sources, setSources] = useState<DataSource[]>(() => clone(seedSources));
+  const [attributes, setAttributes] = useState<Attribute[]>(() => clone(seedAttributes));
+  const [policyVersions, setPolicyVersions] = useState<PolicyVersion[]>(() => [
+    { version: "v3.0", at: new Date(Date.now() - 20 * 86400_000).toISOString(), by: "Policy team", note: "Baseline money-mule EDD policy", rules: clone(seedRuleDefs), sets: clone(seedRuleSets) },
+  ]);
   const [negbase] = useState<NegbaseRecord[]>(() => clone(seedNegbase));
   const [enforcement, setEnforcement] = useState<EnforcementEntry[]>(() => clone(seedEnforcement));
   const [audit, setAudit] = useState<AuditEntry[]>(() => clone(seedAudit));
@@ -95,6 +131,12 @@ export function EDDProvider({ children }: { children: ReactNode }) {
         ),
       );
 
+    const attrsFor = (alertId: string) => availableAttrs(alertAttributes[alertId] ?? {}, sources, attributes);
+    const evaluate = (alertId: string) => {
+      const alert = alerts.find((a) => a.id === alertId);
+      return runPolicy(attrsFor(alertId), rules, ruleSets, ruleGroups, alert?.preliminarySignal ?? "M");
+    };
+
     const patch = (caseId: string, fn: (c: EDDCase) => EDDCase) =>
       setCases((prev) => prev.map((c) => (c.id === caseId ? fn(c) : c)));
 
@@ -109,30 +151,23 @@ export function EDDProvider({ children }: { children: ReactNode }) {
       enforcement,
       audit,
 
+      attrsFor,
+      evaluate,
       triageAlert: (alertId) => {
-        const alert = alerts.find((a) => a.id === alertId)!;
-        const base = { VH: 88, H: 72, M: 51, L: 24 }[alert.preliminarySignal];
-        const active = rules.filter((r) => r.active);
-        const negHit = alert.source === "Negative Database" || alert.source === "External Intelligence";
-        const triggered = active
-          .filter((r) => (negHit ? r.family !== "Velocity / Geo" : r.family === "Behavioural" || r.family === "Identity / KYC"))
-          .slice(0, negHit ? 4 : 3)
-          .map((r) => r.id);
-        const score = Math.min(99, base + (negHit ? 4 : 0));
-        const grade = gradeForScore(score);
-        const recommendation: Recommendation = score >= 80 ? "Block" : score >= 35 ? "Further Investigation" : "Unblock";
+        const policy = evaluate(alertId);
+        const grade = gradeForScore(policy.score);
         return {
           alertId,
-          score,
+          score: policy.score,
           grade,
-          recommendation,
-          rulesTriggered: triggered,
-          segment: negHit ? "Negative-database linked mule network" : "Behavioural mule pattern",
-          signals: [
-            { label: "Preliminary signal", weight: base / 4, detail: alert.trigger },
-            { label: negHit ? "Negative Database linkage" : "Transaction behaviour", weight: negHit ? 20 : 14, detail: negHit ? "Identifier present in negative database" : "Pass-through and counterparty spread" },
-            { label: "Identity attributes", weight: 8, detail: "Mobile vintage and handle count outside norm" },
-          ],
+          recommendation: policy.recommendation,
+          rulesTriggered: policy.fired.map((r) => r.rule.id),
+          segment: policy.outcome,
+          policy,
+          signals: policy.fired
+            .filter((r) => r.rule.action.weight > 0)
+            .slice(0, 5)
+            .map((r) => ({ label: r.rule.name, weight: r.rule.action.weight, detail: r.rule.description })),
         };
       },
 
@@ -344,6 +379,85 @@ export function EDDProvider({ children }: { children: ReactNode }) {
         logAudit("Evidence attached", "No linkage", identifier, caseId);
       },
 
+      ruleSets,
+      ruleGroups,
+      sources,
+      attributes,
+      policyVersions,
+
+      addSource: (source, newAttributes) => {
+        setSources((prev) => [...prev, source]);
+        setAttributes((prev) => [...prev, ...newAttributes.filter((a) => !prev.some((p) => p.key === a.key))]);
+        logAudit("Data source added", "—", `${source.name} (${newAttributes.length} fields)`);
+      },
+      toggleSource: (sourceId) => {
+        const src = sources.find((x) => x.id === sourceId);
+        setSources((prev) => prev.map((x) => (x.id === sourceId ? { ...x, status: !x.status } : x)));
+        logAudit("Data source toggled", `${src?.name} ${src?.status ? "on" : "off"}`, src?.status ? "off" : "on");
+      },
+      syncSource: (sourceId) => {
+        setSources((prev) =>
+          prev.map((x) =>
+            x.id === sourceId
+              ? { ...x, lastSync: new Date().toISOString(), health: "Healthy", syncHistory: [{ at: new Date().toISOString(), records: 120 + Math.round(Math.random() * 300), status: "Success", durationSec: 9 }, ...x.syncHistory] }
+              : x,
+          ),
+        );
+      },
+      upsertRule: (rule, note) => {
+        const existing = rules.find((r) => r.id === rule.id);
+        const version = existing ? existing.version + 1 : 1;
+        const next: RuleDef = {
+          ...rule,
+          version,
+          weight: rule.action.weight,
+          threshold: rule.description,
+          history: [{ version, at: new Date().toISOString(), by: actor, note }, ...(existing?.history ?? [])],
+        };
+        setRules((prev) => (existing ? prev.map((r) => (r.id === rule.id ? next : r)) : [...prev, next]));
+        logAudit(existing ? "Rule updated" : "Rule created", existing ? `${rule.id} v${existing.version}` : "—", `${rule.id} v${version} ${rule.status}`);
+      },
+      retireRule: (ruleId) => {
+        setRules((prev) => prev.map((r) => (r.id === ruleId ? { ...r, status: "Retired", active: false } : r)));
+        logAudit("Rule retired", ruleId, "Retired");
+      },
+      approveRule: (ruleId) => {
+        setRules((prev) => prev.map((r) => (r.id === ruleId ? { ...r, status: "Active", active: true, history: [{ version: r.version, at: new Date().toISOString(), by: actor, note: "Approved (checker)" }, ...r.history] } : r)));
+        logAudit("Rule approved", `${ruleId} Pending approval`, "Active");
+      },
+      moveRuleSet: (setId, dir) => {
+        setRuleSets((prev) => {
+          const sorted = [...prev].sort((a, b) => a.order - b.order);
+          const i = sorted.findIndex((x) => x.id === setId);
+          const j = i + dir;
+          if (j < 0 || j >= sorted.length) return prev;
+          const a = sorted[i]!, b = sorted[j]!;
+          return prev.map((x) => (x.id === a.id ? { ...x, order: b.order } : x.id === b.id ? { ...x, order: a.order } : x));
+        });
+        logAudit("Rule set reordered", setId, dir < 0 ? "moved up" : "moved down");
+      },
+      setStrategy: (setId, strategy) => {
+        setRuleSets((prev) => prev.map((x) => (x.id === setId ? { ...x, strategy } : x)));
+        logAudit("Combine strategy changed", setId, strategy);
+      },
+      setRulePriority: (ruleId, priority) => {
+        setRules((prev) => prev.map((r) => (r.id === ruleId ? { ...r, priority } : r)));
+      },
+      publishPolicy: (note) => {
+        const last = policyVersions[0]?.version ?? "v3.0";
+        const [maj, min] = last.slice(1).split(".").map(Number);
+        const version = `v${maj}.${(min ?? 0) + 1}`;
+        setPolicyVersions((prev) => [{ version, at: new Date().toISOString(), by: actor, note, rules: clone(rules), sets: clone(ruleSets) }, ...prev]);
+        logAudit("Policy published", last, version);
+      },
+      rollbackPolicy: (version) => {
+        const v = policyVersions.find((p) => p.version === version);
+        if (!v) return;
+        setRules(clone(v.rules));
+        setRuleSets(clone(v.sets));
+        logAudit("Policy rolled back", "Working copy", version);
+      },
+
       toggleRule: (ruleId) => {
         setRules((prev) => prev.map((r) => (r.id === ruleId ? { ...r, active: !r.active } : r)));
         logAudit("Rule toggled", ruleId, "state changed");
@@ -352,12 +466,15 @@ export function EDDProvider({ children }: { children: ReactNode }) {
       resetDemo: () => {
         setAlerts(clone(seedAlerts));
         setCases(clone(seedCases));
-        setRules(clone(seedRules));
+        setRules(clone(seedRuleDefs));
+        setRuleSets(clone(seedRuleSets));
+        setSources(clone(seedSources));
+        setAttributes(clone(seedAttributes));
         setEnforcement(clone(seedEnforcement));
         setAudit(clone(seedAudit));
       },
     };
-  }, [role, actor, alerts, cases, rules, negbase, enforcement, audit]);
+  }, [role, actor, alerts, cases, rules, ruleSets, ruleGroups, sources, attributes, policyVersions, negbase, enforcement, audit]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
