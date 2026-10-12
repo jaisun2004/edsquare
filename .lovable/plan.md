@@ -56,6 +56,29 @@ It covers what the prototype does today, and clearly marks what is **Target / to
 16. **Release plan**: prototype → MVP → v1 → v2 milestones; risks and mitigations; open questions
 17. **Appendix**: glossary, the rule catalogue (R-01…R-17, HS, SG, OV), the data-source list, sample screens (screenshots of the current app)
 
+## App page names and links
+
+Throughout the document, every module, workflow step and feature uses the exact page name shown in the app (e.g. "Alert Inbox", "Case Queue", "Administration → Policy & hierarchy"). Each one is a clickable link to that page on the live app at https://edsquare.mfilterit.net, for example:
+- `/alerts`
+- `/cases`
+- `/cases/CASE-2041`
+- `/engagement`
+- `/investigations`
+- `/enforcement`
+- `/reports`
+- `/audit`
+- `/negative-database`
+- `/admin/sources`
+- `/admin/sources/SRC-NEG`
+- `/admin/rules`
+- `/admin/rules/new`
+- `/admin/policy`
+- `/admin/integrations`
+- `/admin/users`
+- `/admin/consent`
+
+A "Screen index" appendix lists every page with its link, role access, and the PRD sections that cover it. Screenshot captions include the page name and link. Note: the app opens as the Analyst role by default, so the document explains which role to switch to (top-right role picker) to see each admin page.
+
 ## Deliverable
 
 - `/mnt/documents/EDSquare-PRD.docx`: about 30–40 pages with a table of contents, numbered requirements, tables, workflow diagrams and app screenshots
