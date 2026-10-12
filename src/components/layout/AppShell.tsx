@@ -37,7 +37,9 @@ const nav = [
     label: "Administration",
     icon: Settings,
     children: [
+      { to: "/admin/sources", label: "Data sources" },
       { to: "/admin/rules", label: "Rules & thresholds" },
+      { to: "/admin/policy", label: "Policy & hierarchy" },
       { to: "/admin/integrations", label: "Integrations" },
       { to: "/admin/users", label: "Users & roles" },
       { to: "/admin/consent", label: "Consent templates" },
@@ -51,7 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { role, setRole, actor, alerts, resetDemo } = useEDD();
   const newAlerts = alerts.filter((a) => a.status === "New").length;
   const hidden = new Set<string>();
-  if (role !== "admin") hidden.add("/admin");
+  if (role !== "admin" && role !== "supervisor") hidden.add("/admin");
   if (!["supervisor", "admin", "auditor"].includes(role)) hidden.add("/audit");
 
   return (

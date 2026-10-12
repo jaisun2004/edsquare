@@ -32,7 +32,7 @@ export interface Signal {
 export interface Rule {
   id: string;
   name: string;
-  family: "Behavioural" | "Identity / KYC" | "Negative Database / OSINT" | "Velocity / Geo";
+  family: string;
   weight: number;
   threshold: string;
   active: boolean;

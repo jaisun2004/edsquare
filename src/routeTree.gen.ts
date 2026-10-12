@@ -21,10 +21,15 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminConsentRouteImport } from './routes/admin.consent'
 import { Route as AdminIntegrationsRouteImport } from './routes/admin.integrations'
-import { Route as AdminRulesRouteImport } from './routes/admin.rules'
+import { Route as AdminPolicyRouteImport } from './routes/admin.policy'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as CasesIndexRouteImport } from './routes/cases.index'
 import { Route as CasesCaseIdRouteImport } from './routes/cases.$caseId'
+import { Route as AdminRulesIndexRouteImport } from './routes/admin.rules.index'
+import { Route as AdminRulesRuleIdRouteImport } from './routes/admin.rules.$ruleId'
+import { Route as AdminRulesNewRouteImport } from './routes/admin.rules.new'
+import { Route as AdminSourcesIndexRouteImport } from './routes/admin.sources.index'
+import { Route as AdminSourcesSourceIdRouteImport } from './routes/admin.sources.$sourceId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -86,9 +91,9 @@ const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
   path: '/integrations',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminRulesRoute = AdminRulesRouteImport.update({
-  id: '/rules',
-  path: '/rules',
+const AdminPolicyRoute = AdminPolicyRouteImport.update({
+  id: '/policy',
+  path: '/policy',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
@@ -106,6 +111,31 @@ const CasesCaseIdRoute = CasesCaseIdRouteImport.update({
   path: '/cases/$caseId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRulesIndexRoute = AdminRulesIndexRouteImport.update({
+  id: '/rules/',
+  path: '/rules/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRulesRuleIdRoute = AdminRulesRuleIdRouteImport.update({
+  id: '/rules/$ruleId',
+  path: '/rules/$ruleId',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRulesNewRoute = AdminRulesNewRouteImport.update({
+  id: '/rules/new',
+  path: '/rules/new',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSourcesIndexRoute = AdminSourcesIndexRouteImport.update({
+  id: '/sources/',
+  path: '/sources/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSourcesSourceIdRoute = AdminSourcesSourceIdRouteImport.update({
+  id: '/sources/$sourceId',
+  path: '/sources/$sourceId',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -119,11 +149,16 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
-  '/admin/rules': typeof AdminRulesRoute
+  '/admin/policy': typeof AdminPolicyRoute
   '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/admin/': typeof AdminIndexRoute
   '/cases/': typeof CasesIndexRoute
+  '/admin/rules/$ruleId': typeof AdminRulesRuleIdRoute
+  '/admin/rules/new': typeof AdminRulesNewRoute
+  '/admin/sources/$sourceId': typeof AdminSourcesSourceIdRoute
+  '/admin/rules/': typeof AdminRulesIndexRoute
+  '/admin/sources/': typeof AdminSourcesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -136,11 +171,16 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
-  '/admin/rules': typeof AdminRulesRoute
+  '/admin/policy': typeof AdminPolicyRoute
   '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/admin': typeof AdminIndexRoute
   '/cases': typeof CasesIndexRoute
+  '/admin/rules/$ruleId': typeof AdminRulesRuleIdRoute
+  '/admin/rules/new': typeof AdminRulesNewRoute
+  '/admin/sources/$sourceId': typeof AdminSourcesSourceIdRoute
+  '/admin/rules': typeof AdminRulesIndexRoute
+  '/admin/sources': typeof AdminSourcesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -155,11 +195,16 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
-  '/admin/rules': typeof AdminRulesRoute
+  '/admin/policy': typeof AdminPolicyRoute
   '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/admin/': typeof AdminIndexRoute
   '/cases/': typeof CasesIndexRoute
+  '/admin/rules/$ruleId': typeof AdminRulesRuleIdRoute
+  '/admin/rules/new': typeof AdminRulesNewRoute
+  '/admin/sources/$sourceId': typeof AdminSourcesSourceIdRoute
+  '/admin/rules/': typeof AdminRulesIndexRoute
+  '/admin/sources/': typeof AdminSourcesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -175,11 +220,16 @@ export interface FileRouteTypes {
     | '/reports'
     | '/admin/consent'
     | '/admin/integrations'
-    | '/admin/rules'
+    | '/admin/policy'
     | '/admin/users'
     | '/cases/$caseId'
     | '/admin/'
     | '/cases/'
+    | '/admin/rules/$ruleId'
+    | '/admin/rules/new'
+    | '/admin/sources/$sourceId'
+    | '/admin/rules/'
+    | '/admin/sources/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -192,11 +242,16 @@ export interface FileRouteTypes {
     | '/reports'
     | '/admin/consent'
     | '/admin/integrations'
-    | '/admin/rules'
+    | '/admin/policy'
     | '/admin/users'
     | '/cases/$caseId'
     | '/admin'
     | '/cases'
+    | '/admin/rules/$ruleId'
+    | '/admin/rules/new'
+    | '/admin/sources/$sourceId'
+    | '/admin/rules'
+    | '/admin/sources'
   id:
     | '__root__'
     | '/'
@@ -210,11 +265,16 @@ export interface FileRouteTypes {
     | '/reports'
     | '/admin/consent'
     | '/admin/integrations'
-    | '/admin/rules'
+    | '/admin/policy'
     | '/admin/users'
     | '/cases/$caseId'
     | '/admin/'
     | '/cases/'
+    | '/admin/rules/$ruleId'
+    | '/admin/rules/new'
+    | '/admin/sources/$sourceId'
+    | '/admin/rules/'
+    | '/admin/sources/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -317,11 +377,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIntegrationsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/rules': {
-      id: '/admin/rules'
-      path: '/rules'
-      fullPath: '/admin/rules'
-      preLoaderRoute: typeof AdminRulesRouteImport
+    '/admin/policy': {
+      id: '/admin/policy'
+      path: '/policy'
+      fullPath: '/admin/policy'
+      preLoaderRoute: typeof AdminPolicyRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/users': {
@@ -345,23 +405,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CasesCaseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/rules/': {
+      id: '/admin/rules/'
+      path: '/rules'
+      fullPath: '/admin/rules/'
+      preLoaderRoute: typeof AdminRulesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/rules/$ruleId': {
+      id: '/admin/rules/$ruleId'
+      path: '/rules/$ruleId'
+      fullPath: '/admin/rules/$ruleId'
+      preLoaderRoute: typeof AdminRulesRuleIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/rules/new': {
+      id: '/admin/rules/new'
+      path: '/rules/new'
+      fullPath: '/admin/rules/new'
+      preLoaderRoute: typeof AdminRulesNewRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/sources/': {
+      id: '/admin/sources/'
+      path: '/sources'
+      fullPath: '/admin/sources/'
+      preLoaderRoute: typeof AdminSourcesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/sources/$sourceId': {
+      id: '/admin/sources/$sourceId'
+      path: '/sources/$sourceId'
+      fullPath: '/admin/sources/$sourceId'
+      preLoaderRoute: typeof AdminSourcesSourceIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
   AdminConsentRoute: typeof AdminConsentRoute
   AdminIntegrationsRoute: typeof AdminIntegrationsRoute
-  AdminRulesRoute: typeof AdminRulesRoute
+  AdminPolicyRoute: typeof AdminPolicyRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminRulesRuleIdRoute: typeof AdminRulesRuleIdRoute
+  AdminRulesNewRoute: typeof AdminRulesNewRoute
+  AdminSourcesSourceIdRoute: typeof AdminSourcesSourceIdRoute
+  AdminRulesIndexRoute: typeof AdminRulesIndexRoute
+  AdminSourcesIndexRoute: typeof AdminSourcesIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminConsentRoute: AdminConsentRoute,
   AdminIntegrationsRoute: AdminIntegrationsRoute,
-  AdminRulesRoute: AdminRulesRoute,
+  AdminPolicyRoute: AdminPolicyRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminRulesRuleIdRoute: AdminRulesRuleIdRoute,
+  AdminRulesNewRoute: AdminRulesNewRoute,
+  AdminSourcesSourceIdRoute: AdminSourcesSourceIdRoute,
+  AdminRulesIndexRoute: AdminRulesIndexRoute,
+  AdminSourcesIndexRoute: AdminSourcesIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

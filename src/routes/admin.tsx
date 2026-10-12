@@ -3,7 +3,9 @@ import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/layout/AppShell";
 
 export const adminSections = [
+  { to: "/admin/sources", label: "Data sources" },
   { to: "/admin/rules", label: "Rules & thresholds" },
+  { to: "/admin/policy", label: "Policy & hierarchy" },
   { to: "/admin/integrations", label: "Integrations" },
   { to: "/admin/users", label: "Users & roles" },
   { to: "/admin/consent", label: "Consent templates" },
@@ -16,7 +18,7 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   return (
     <div>
-      <PageHeader title="Administration" description="Decision Manager configuration and platform governance." />
+      <PageHeader title="Administration" description="Data sources, Decision Manager rules and platform governance." />
       <nav className="mb-6 flex flex-wrap gap-1 border-b border-border pb-2">
         {adminSections.map((s) => (
           <Link

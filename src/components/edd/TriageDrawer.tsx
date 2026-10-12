@@ -14,7 +14,8 @@ import { can } from "@/lib/roles";
 import type { Recommendation } from "@/data/edd";
 
 export function TriageDrawer({ alertId, onClose }: { alertId: string | null; onClose: () => void }) {
-  const { alerts, rules, role, triageAlert, applyTriage } = useEDD();
+  const { alerts, rules, role, triageAlert, applyTriage, attributes, sources } = useEDD();
+  const sourceName = (attr: string) => sources.find((s) => s.id === attributes.find((a) => a.key === attr)?.sourceId)?.name ?? "";
   const navigate = useNavigate();
   const [result, setResult] = useState<TriageResult | null>(null);
   const [running, setRunning] = useState(false);
@@ -99,17 +100,30 @@ export function TriageDrawer({ alertId, onClose }: { alertId: string | null; onC
             </section>
 
             <section>
-              <p className="text-sm font-medium">Rules triggered</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {result.rulesTriggered.map((id) => {
-                  const rule = rules.find((r) => r.id === id);
-                  return (
-                    <Badge key={id} variant="outline" className="border-primary/25 bg-primary/5 text-primary">
-                      {id} · {rule?.name}
-                    </Badge>
-                  );
-                })}
-              </div>
+              <p className="text-sm font-medium">Decision path</p>
+              <ol className="mt-2 space-y-2">
+                {result.policy.stages.map((st, i) => (
+                  <li key={st.set.id} className="rounded-md border border-border p-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{i + 1}. {st.set.name}</span>
+                      <span className="text-xs text-muted-foreground">{st.note}</span>
+                    </div>
+                    {st.applied.map((r) => (
+                      <div key={r.rule.id} className="mt-2">
+                        <Badge variant="outline" className="border-primary/25 bg-primary/5 text-primary">
+                          {r.rule.id} · {rules.find((x) => x.id === r.rule.id)?.name ?? r.rule.name}
+                          {r.rule.action.outcome ? ` → ${r.rule.action.outcome}` : ` +${r.rule.action.weight}`}
+                        </Badge>
+                        <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                          {r.matches.filter((m) => m.pass).map((m, j) => (
+                            <li key={j}>{attributes.find((a) => a.key === m.cond.attr)?.label ?? m.cond.attr}: <span className="text-foreground">{String(m.actual)}</span> · {sourceName(m.cond.attr)}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </li>
+                ))}
+              </ol>
             </section>
 
             <Separator />
