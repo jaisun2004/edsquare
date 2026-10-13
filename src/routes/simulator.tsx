@@ -287,7 +287,7 @@ function Simulator() {
   );
 }
 
-function CaseLink({ id }: { id?: string }) {
+function CaseLink({ id }: { id?: string | undefined }) {
   if (!id) return null;
   return <Link to="/cases/$caseId" params={{ caseId: id }} className="font-medium text-primary underline">{id}</Link>;
 }
