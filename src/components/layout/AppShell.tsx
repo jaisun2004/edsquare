@@ -12,6 +12,7 @@ import {
   ScrollText,
   Bell,
   RotateCcw,
+  PlayCircle,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -32,6 +33,7 @@ const nav = [
   { to: "/investigations", label: "Investigations", icon: Search },
   { to: "/enforcement", label: "Enforcement Log", icon: ShieldBan },
   { to: "/reports", label: "Reports", icon: BarChart3 },
+  { to: "/simulator", label: "Demo Simulator", icon: PlayCircle },
   {
     to: "/admin",
     label: "Administration",

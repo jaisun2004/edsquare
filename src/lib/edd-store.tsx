@@ -87,6 +87,7 @@ interface StoreValue {
   attachEvidence: (caseId: string, identifier: string) => void;
   toggleRule: (ruleId: string) => void;
   resetDemo: () => void;
+  injectAlert: (alert: Alert, attrs: AttrMap) => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -106,6 +107,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
   const [negbase] = useState<NegbaseRecord[]>(() => clone(seedNegbase));
   const [enforcement, setEnforcement] = useState<EnforcementEntry[]>(() => clone(seedEnforcement));
   const [audit, setAudit] = useState<AuditEntry[]>(() => clone(seedAudit));
+  const [extraAttrs, setExtraAttrs] = useState<Record<string, AttrMap>>({});
 
   const actor = roleActors[role];
 
@@ -131,7 +133,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
         ),
       );
 
-    const attrsFor = (alertId: string) => availableAttrs(alertAttributes[alertId] ?? {}, sources, attributes);
+    const attrsFor = (alertId: string) => availableAttrs(extraAttrs[alertId] ?? alertAttributes[alertId] ?? {}, sources, attributes);
     const evaluate = (alertId: string) => {
       const alert = alerts.find((a) => a.id === alertId);
       return runPolicy(attrsFor(alertId), rules, ruleSets, ruleGroups, alert?.preliminarySignal ?? "M");
@@ -463,7 +465,14 @@ export function EDDProvider({ children }: { children: ReactNode }) {
         logAudit("Rule toggled", ruleId, "state changed");
       },
 
+      injectAlert: (alert, attrs) => {
+        setExtraAttrs((prev) => ({ ...prev, [alert.id]: attrs }));
+        setAlerts((prev) => [alert, ...prev]);
+        logAudit("Simulated transaction ingested", "—", `${alert.id} New`);
+      },
+
       resetDemo: () => {
+        setExtraAttrs({});
         setAlerts(clone(seedAlerts));
         setCases(clone(seedCases));
         setRules(clone(seedRuleDefs));
@@ -474,7 +483,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
         setAudit(clone(seedAudit));
       },
     };
-  }, [role, actor, alerts, cases, rules, ruleSets, ruleGroups, sources, attributes, policyVersions, negbase, enforcement, audit]);
+  }, [role, actor, alerts, cases, rules, ruleSets, ruleGroups, sources, attributes, policyVersions, negbase, enforcement, audit, extraAttrs]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
