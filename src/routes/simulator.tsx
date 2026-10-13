@@ -82,15 +82,15 @@ function Simulator() {
     }
     if (next === 4 && r.triage) {
       const t = r.triage;
-      if (t.grade === "L" || (t.recommendation === "Unblock" && t.grade !== "VH")) {
+      if (t.recommendation === "Unblock" && !t.policy.hardStop) {
         const caseId = store.applyTriage(t, "Unblock", "Simulator: low risk, auto-cleared");
         setRun({ ...r, caseId, cleared: true });
       }
     }
     if (next === 5 && r.triage && !r.cleared) {
       const caseId = store.applyTriage(r.triage, "Further Investigation", "Simulator: routed for EDD");
-      const g = r.triage.grade;
-      const route = g === "VH" ? { queue: "Kavita Menon (Supervisor)", reason: "Very High risk needs supervisor approval" } : g === "H" ? { queue: "Arjun Rao (Investigator)", reason: "High risk goes to the investigator queue" } : { queue: "Priya Nair (Analyst)", reason: "Medium risk goes to the analyst queue" };
+      const g = r.triage.policy.hardStop ? "VH" : r.triage.grade;
+      const route = g === "VH" ? { queue: "Kavita Menon (Supervisor)", reason: r.triage.policy.hardStop ? "A hard-stop rule fired, so supervisor approval is needed" : "Very High risk needs supervisor approval" } : g === "H" ? { queue: "Arjun Rao (Investigator)", reason: "High risk goes to the investigator queue" } : { queue: "Priya Nair (Analyst)", reason: "Medium risk goes to the analyst queue" };
       setTimeout(() => store.assignCase(caseId, route.queue.split(" (")[0]!), 50);
       setRun({ ...r, caseId, route });
     }
