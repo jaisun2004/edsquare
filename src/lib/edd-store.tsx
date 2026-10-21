@@ -1,6 +1,8 @@
 import type { CallRecord, QuestionnaireRecord } from "@/data/edd";
 import type { DemoRun } from "@/lib/demo-runs";
-import { createContext, useContext, useEffect, useMemo, useState, type Context, type ReactNode } from "react";
+import { buildSamples } from "@/data/sample-scenarios";
+import { clearDemoRecords, listDemoRecords, saveDemoRecords, type DemoRecord } from "@/lib/demo-records.functions";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type Context, type ReactNode } from "react";
 import {
   alerts as seedAlerts,
   audit as seedAudit,
@@ -109,8 +111,8 @@ const StoreContext = (g.__eddStoreContext ??= createContext<StoreValue | null>(n
 
 export function EDDProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>("analyst");
-  const [alerts, setAlerts] = useState<Alert[]>(() => clone(seedAlerts));
-  const [cases, setCases] = useState<EDDCase[]>(() => clone(seedCases));
+  const [alerts, setAlerts] = useState<Alert[]>(() => clone(SEED_ALERTS));
+  const [cases, setCases] = useState<EDDCase[]>(() => clone(SEED_CASES));
   const [rules, setRules] = useState<RuleDef[]>(() => clone(seedRuleDefs));
   const [ruleSets, setRuleSets] = useState<RuleSet[]>(() => clone(seedRuleSets));
   const [ruleGroups] = useState<RuleGroup[]>(() => clone(seedRuleGroups));
@@ -120,7 +122,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
     { version: "v3.0", at: new Date(Date.now() - 20 * 86400_000).toISOString(), by: "Policy team", note: "Baseline money-mule EDD policy", rules: clone(seedRuleDefs), sets: clone(seedRuleSets) },
   ]);
   const [negbase] = useState<NegbaseRecord[]>(() => clone(seedNegbase));
-  const [enforcement, setEnforcement] = useState<EnforcementEntry[]>(() => clone(seedEnforcement));
+  const [enforcement, setEnforcement] = useState<EnforcementEntry[]>(() => clone(SEED_ENFORCEMENT));
   const [audit, setAudit] = useState<AuditEntry[]>(() => clone(seedAudit));
   const [extraAttrs, setExtraAttrs] = useState<Record<string, AttrMap>>({});
   const [demoRuns, setDemoRuns] = useState<DemoRun[]>([]);
@@ -528,14 +530,14 @@ export function EDDProvider({ children }: { children: ReactNode }) {
 
       resetDemo: () => {
         setExtraAttrs({});
-        setDemoRuns([]);
-        setAlerts(clone(seedAlerts));
-        setCases(clone(seedCases));
+        setDemoRuns(clone(SAMPLES.runs)); void clearDemoRecords().catch(() => undefined); savedRef.current = "";
+        setAlerts(clone(SEED_ALERTS));
+        setCases(clone(SEED_CASES));
         setRules(clone(seedRuleDefs));
         setRuleSets(clone(seedRuleSets));
         setSources(clone([...seedSources, ...workbookSources]));
         setAttributes(clone(seedAttributes));
-        setEnforcement(clone(seedEnforcement));
+        setEnforcement(clone(SEED_ENFORCEMENT));
         setAudit(clone(seedAudit));
       },
     };
