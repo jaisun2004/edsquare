@@ -1,10 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { PageHeader } from "@/components/layout/AppShell";
 import { RiskChip, formatDateTime, timeAgo } from "@/components/edd/chips";
 import { AlertFunnel, JourneyDots, JourneyStrip, ResultBadge, useJourneys } from "@/components/edd/Journey";
-import { TriageDrawer } from "@/components/edd/TriageDrawer";
+import { sheetAlertFor } from "@/data/sample-scenarios";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,7 +37,8 @@ function AlertsPage() {
   const [source, setSource] = useState("all");
   const [result, setResult] = useState<AlertResult | "all">("all");
   const [openId, setOpenId] = useState<string | null>(null);
-  const [triageId, setTriageId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const runTriage = (a: { id: string; source: string; trigger: string; account: string }) => navigate({ to: "/simulator", search: { alert: sheetAlertFor(a as never) } });
 
   const rows = journeys
     .filter(({ alert, j }) => (source === "all" || alert.source === source) && (result === "all" || j.result === result))
@@ -85,7 +86,7 @@ function AlertsPage() {
                   <TableCell>
                     <p className="font-medium">{a.id}</p>
                     <p className="text-xs text-muted-foreground">{a.source} · {timeAgo(a.receivedAt)}</p>
-                    {j.run && <Badge variant="secondary" className="mt-1">Live demo</Badge>}
+                    {j.run && <Badge variant="secondary" className="mt-1">{j.run.sample ? "Sample scenario" : "Live demo"}</Badge>}
                   </TableCell>
                   <TableCell><p>{a.customer}</p><p className="text-xs text-muted-foreground">{a.account}</p></TableCell>
                   <TableCell className="max-w-[240px] text-sm text-muted-foreground">{a.trigger}</TableCell>
@@ -95,7 +96,7 @@ function AlertsPage() {
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     {j.result === "New" ? (
                       <div className="flex justify-end gap-2">
-                        <Button size="sm" disabled={!can(role, "runTriage")} onClick={() => setTriageId(a.id)}>Run triage</Button>
+                        <Button size="sm" disabled={!can(role, "runTriage")} onClick={() => runTriage(a)}>Run in simulator</Button>
                         <Button size="sm" variant="ghost" disabled={!can(role, "runTriage")} onClick={() => dismissAlert(a.id)}>Dismiss</Button>
                       </div>
                     ) : j.caseItem ? (
@@ -131,7 +132,7 @@ function AlertsPage() {
                 </div>
                 {open.j.run && (
                   <div className="rounded-md border border-border p-3">
-                    <p className="font-medium">Live demo run</p>
+                    <p className="font-medium">{open.j.run.sample ? "Sample scenario" : "Live demo run"}</p>
                     <p className="text-muted-foreground">{open.j.run.outcome || "—"}</p>
                     {open.j.run.recordingUrl && <audio controls src={open.j.run.recordingUrl} className="mt-2 h-8 w-full" />}
                   </div>
@@ -145,7 +146,7 @@ function AlertsPage() {
                 )}
                 <div className="flex gap-2">
                   {open.j.caseItem && <Button asChild size="sm"><Link to="/cases/$caseId" params={{ caseId: open.j.caseItem.id }}>Open case {open.j.caseItem.id}</Link></Button>}
-                  {open.j.result === "New" && <Button size="sm" disabled={!can(role, "runTriage")} onClick={() => { setTriageId(open.alert.id); setOpenId(null); }}>Run triage</Button>}
+                  {open.j.result === "New" && <Button size="sm" disabled={!can(role, "runTriage")} onClick={() => runTriage(open.alert)}>Run in simulator</Button>}
                 </div>
               </div>
             </>
@@ -153,7 +154,6 @@ function AlertsPage() {
         </SheetContent>
       </Sheet>
 
-      <TriageDrawer alertId={triageId} onClose={() => setTriageId(null)} />
     </div>
   );
 }

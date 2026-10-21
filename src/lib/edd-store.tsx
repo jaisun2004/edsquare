@@ -1,6 +1,8 @@
 import type { CallRecord, QuestionnaireRecord } from "@/data/edd";
 import type { DemoRun } from "@/lib/demo-runs";
-import { createContext, useContext, useEffect, useMemo, useState, type Context, type ReactNode } from "react";
+import { buildSamples } from "@/data/sample-scenarios";
+import { clearDemoRecords, listDemoRecords, saveDemoRecords, type DemoRecord } from "@/lib/demo-records.functions";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type Context, type ReactNode } from "react";
 import {
   alerts as seedAlerts,
   audit as seedAudit,
@@ -102,6 +104,13 @@ interface StoreValue {
   attachFlow: (caseId: string, f: { events?: FlowLogEntry[]; calls?: CallRecord[]; questionnaires?: QuestionnaireRecord[] }) => void;
 }
 
+const SAMPLES = buildSamples();
+const SEED_ALERTS = [...SAMPLES.alerts, ...seedAlerts];
+const SEED_CASES = [...SAMPLES.cases, ...seedCases];
+const SEED_ENFORCEMENT = [...SAMPLES.enforcement, ...seedEnforcement];
+const SEED_ALERT_IDS = new Set(SEED_ALERTS.map((a) => a.id));
+const SEED_CASE_IDS = new Set(SEED_CASES.map((c) => c.id));
+const SEED_ENF_IDS = new Set(SEED_ENFORCEMENT.map((e) => e.id));
 // Keep one context object across hot reloads so an edited store module never orphans the mounted provider.
 const DEMO_KEY = "edsquare.demoRuns";
 const g = globalThis as { __eddStoreContext?: Context<StoreValue | null> };
@@ -109,8 +118,8 @@ const StoreContext = (g.__eddStoreContext ??= createContext<StoreValue | null>(n
 
 export function EDDProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>("analyst");
-  const [alerts, setAlerts] = useState<Alert[]>(() => clone(seedAlerts));
-  const [cases, setCases] = useState<EDDCase[]>(() => clone(seedCases));
+  const [alerts, setAlerts] = useState<Alert[]>(() => clone(SEED_ALERTS));
+  const [cases, setCases] = useState<EDDCase[]>(() => clone(SEED_CASES));
   const [rules, setRules] = useState<RuleDef[]>(() => clone(seedRuleDefs));
   const [ruleSets, setRuleSets] = useState<RuleSet[]>(() => clone(seedRuleSets));
   const [ruleGroups] = useState<RuleGroup[]>(() => clone(seedRuleGroups));
@@ -120,28 +129,49 @@ export function EDDProvider({ children }: { children: ReactNode }) {
     { version: "v3.0", at: new Date(Date.now() - 20 * 86400_000).toISOString(), by: "Policy team", note: "Baseline money-mule EDD policy", rules: clone(seedRuleDefs), sets: clone(seedRuleSets) },
   ]);
   const [negbase] = useState<NegbaseRecord[]>(() => clone(seedNegbase));
-  const [enforcement, setEnforcement] = useState<EnforcementEntry[]>(() => clone(seedEnforcement));
+  const [enforcement, setEnforcement] = useState<EnforcementEntry[]>(() => clone(SEED_ENFORCEMENT));
   const [audit, setAudit] = useState<AuditEntry[]>(() => clone(seedAudit));
   const [extraAttrs, setExtraAttrs] = useState<Record<string, AttrMap>>({});
-  const [demoRuns, setDemoRuns] = useState<DemoRun[]>([]);
+  const [demoRuns, setDemoRuns] = useState<DemoRun[]>(() => clone(SAMPLES.runs));
   const [loaded, setLoaded] = useState(false);
+  const sentRef = useRef<Map<string, string>>(new Map());
 
-  // Keep demo runs and the cases they created for the browser session.
+  // Demo runs, the cases/alerts they created and decisions are kept in the shared demo database,
+  // so they survive refreshes, new tabs and the published app.
   useEffect(() => {
-    try {
-      const saved = JSON.parse(sessionStorage.getItem(DEMO_KEY) ?? "null") as { runs: DemoRun[]; cases: EDDCase[] } | null;
-      if (saved) {
-        setDemoRuns(saved.runs);
-        setCases((prev) => [...saved.cases.filter((c) => !prev.some((p) => p.id === c.id)), ...prev]);
-      }
-    } catch { /* ignore */ }
-    setLoaded(true);
+    let alive = true;
+    listDemoRecords()
+      .then((rows) => {
+        if (!alive) return;
+        const of = <T,>(k: DemoRecord["kind"]) => rows.filter((r) => r.kind === k).map((r) => r.data as unknown as T);
+        const mergeIn = <T extends { id: string }>(saved: T[]) => (prev: T[]) => [...saved.filter((s) => !prev.some((p) => p.id === s.id)).reverse(), ...prev.map((p) => saved.find((s) => s.id === p.id) ?? p)];
+        for (const r of rows) sentRef.current.set(r.id, JSON.stringify(r.data));
+        setDemoRuns(mergeIn(of<DemoRun>("run")));
+        setCases(mergeIn(of<EDDCase>("case")));
+        setAlerts(mergeIn(of<Alert>("alert")));
+        setEnforcement(mergeIn(of<EnforcementEntry>("enforcement")));
+      })
+      .catch(() => undefined)
+      .finally(() => alive && setLoaded(true));
+    try { sessionStorage.removeItem(DEMO_KEY); } catch { /* ignore */ }
+    return () => { alive = false; };
   }, []);
   useEffect(() => {
     if (!loaded) return;
-    const ids = new Set(demoRuns.map((r) => r.caseId).filter(Boolean));
-    sessionStorage.setItem(DEMO_KEY, JSON.stringify({ runs: demoRuns, cases: cases.filter((c) => ids.has(c.id)) }));
-  }, [loaded, demoRuns, cases]);
+    const items: DemoRecord[] = [
+      ...demoRuns.filter((r) => !r.sample).map((d) => ({ id: d.id, kind: "run" as const, data: d })),
+      ...cases.filter((c) => !SEED_CASE_IDS.has(c.id)).map((d) => ({ id: d.id, kind: "case" as const, data: d })),
+      ...alerts.filter((a) => !SEED_ALERT_IDS.has(a.id)).map((d) => ({ id: d.id, kind: "alert" as const, data: d })),
+      ...enforcement.filter((e) => !SEED_ENF_IDS.has(e.id)).map((d) => ({ id: d.id, kind: "enforcement" as const, data: d })),
+    ];
+    const changed = items.filter((i) => sentRef.current.get(`${i.kind}:${i.id}`) !== JSON.stringify(i.data));
+    if (!changed.length) return;
+    const t = setTimeout(() => {
+      for (const i of changed) sentRef.current.set(`${i.kind}:${i.id}`, JSON.stringify(i.data));
+      void saveDemoRecords({ data: { items: changed } }).catch(() => { for (const i of changed) sentRef.current.delete(`${i.kind}:${i.id}`); });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [loaded, demoRuns, cases, alerts, enforcement]);
 
   const actor = roleActors[role];
 
@@ -528,14 +558,14 @@ export function EDDProvider({ children }: { children: ReactNode }) {
 
       resetDemo: () => {
         setExtraAttrs({});
-        setDemoRuns([]);
-        setAlerts(clone(seedAlerts));
-        setCases(clone(seedCases));
+        setDemoRuns(clone(SAMPLES.runs)); void clearDemoRecords().catch(() => undefined); sentRef.current.clear();
+        setAlerts(clone(SEED_ALERTS));
+        setCases(clone(SEED_CASES));
         setRules(clone(seedRuleDefs));
         setRuleSets(clone(seedRuleSets));
         setSources(clone([...seedSources, ...workbookSources]));
         setAttributes(clone(seedAttributes));
-        setEnforcement(clone(seedEnforcement));
+        setEnforcement(clone(SEED_ENFORCEMENT));
         setAudit(clone(seedAudit));
       },
     };

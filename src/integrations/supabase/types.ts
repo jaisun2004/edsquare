@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      demo_records: {
+        Row: {
+          data: Json
+          id: string
+          kind: string
+          updated_at: string
+        }
+        Insert: {
+          data: Json
+          id: string
+          kind: string
+          updated_at?: string
+        }
+        Update: {
+          data?: Json
+          id?: string
+          kind?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       questionnaire_sessions: {
         Row: {
           answers: Json | null

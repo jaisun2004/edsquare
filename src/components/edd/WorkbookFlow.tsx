@@ -35,12 +35,12 @@ const colourCls: Record<Colour, string> = {
   Manual: "border-primary text-primary",
 };
 
-export function WorkbookFlow() {
+export function WorkbookFlow({ initialAlert }: { initialAlert?: string | undefined } = {}) {
   const store = useEDD();
   const storeRef = useRef(store);
   storeRef.current = store;
   const summarise = useServerFn(summariseFlowCase);
-  const [alertId, setAlertId] = useState(workbookAlerts[0]!.id);
+  const [alertId, setAlertId] = useState(workbookAlerts.some((a) => a.id === initialAlert) ? initialAlert! : workbookAlerts[0]!.id);
   const [negbase, setNegbase] = useState(false);
   const [th, setTh] = useState<Thresholds>(defaultThresholds);
   const [phase, setPhase] = useState<Phase>("idle");
