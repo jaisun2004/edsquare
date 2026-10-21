@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useEDD } from "@/lib/edd-store";
+import { CaseCalls, CaseTimeline } from "@/components/edd/CaseRecords";
 import { can } from "@/lib/roles";
 import type { Channel, Recommendation } from "@/data/edd";
 
@@ -185,6 +186,7 @@ function CaseDetailPage() {
               ))}
             </CardContent>
           </Card>
+          <CaseCalls calls={item.calls ?? []} questionnaires={item.questionnaires ?? []} />
           {item.engagement.map((e) => (
             <Card key={e.id}>
               <CardHeader className="pb-2">
@@ -252,17 +254,7 @@ function CaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-4">
-          <Card>
-            <CardContent className="space-y-4 py-6">
-              {item.timeline.map((t) => (
-                <div key={t.id} className="border-l-2 border-primary/30 pl-4">
-                  <p className="text-sm font-medium">{t.action}</p>
-                  <p className="text-sm text-muted-foreground">{t.detail}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{t.actor} · {formatDateTime(t.at)}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          <CaseTimeline entries={item.timeline} />
         </TabsContent>
 
         <TabsContent value="docs" className="mt-4 grid gap-4 lg:grid-cols-2">
