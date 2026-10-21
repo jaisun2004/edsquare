@@ -41,15 +41,15 @@ export const dispatchVoiceCall = createServerFn({ method: "POST" })
 
 export interface VoiceCallView {
   found: boolean;
-  status?: string;
-  callId?: string;
-  startedAt?: string;
-  endedAt?: string;
-  recordingUrl?: string;
-  summary?: string;
-  disposition?: string;
+  status?: string | undefined;
+  callId?: string | undefined;
+  startedAt?: string | undefined;
+  endedAt?: string | undefined;
+  recordingUrl?: string | undefined;
+  summary?: string | undefined;
+  disposition?: string | undefined;
   transcript: { role: string; text: string }[];
-  error?: string;
+  error?: string | undefined;
 }
 
 export const getVoiceCall = createServerFn({ method: "POST" })

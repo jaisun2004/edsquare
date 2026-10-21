@@ -152,7 +152,7 @@ export function WorkbookFlow() {
 
   const realLog = (step: string) => (l: ChannelLog) => {
     add(step, l.ok ? "Amber" : "Red", l.text);
-    play([{ from: "engine", to: step.includes("Voice") ? "voice" : "whatsapp", label: l.text, delay: 100, ms: l.ms, colour: l.ok ? undefined : "Red" }]);
+    play([{ from: "engine", to: step.includes("Voice") ? "voice" : "whatsapp", label: l.text, delay: 100, ...(l.ms !== undefined ? { ms: l.ms } : {}), ...(l.ok ? {} : { colour: "Red" as const }) }]);
   };
   const realAnswers = (a: Record<string, string>) => { setAnswers(a); setAnswering(true); };
 
