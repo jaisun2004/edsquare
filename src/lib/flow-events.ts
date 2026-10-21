@@ -6,7 +6,7 @@ export const LANES = ["source", "engine", "negdb", "cbs", "dm", "whatsapp", "voi
 export type Lane = (typeof LANES)[number];
 export const LANE_LABEL: Record<Lane, string> = {
   source: "Alert source", engine: "EDSquare engine", negdb: "Negative DB", cbs: "Core Banking", dm: "Decision Manager",
-  whatsapp: "Questionnaire", voice: "Voice bot", cases: "Case Manager", enforce: "Enforcement",
+  whatsapp: "WhatsApp", voice: "Voice bot", cases: "Case Manager", enforce: "Enforcement",
 };
 
 export interface FlowEvent {
@@ -45,13 +45,16 @@ export const caseEvents = (caseId: string, account: string): FlowEvent[] => [
   { from: "engine", to: "cases", label: `Case ${caseId} created`, delay: 400, ms: 90, payload: { caseId, account } },
 ];
 
-export function whatsappEvents(answers: Record<string, string>, flag: number, colour: Colour, clears: boolean): FlowEvent[] {
+export function scoreEvents(lane: Lane, answers: Record<string, string>, flag: number, colour: Colour): FlowEvent[] {
+  const end: FlowEvent = colour === "Green"
+    ? { from: "engine", to: "enforce", label: "Unblock: freeze lifted, no case", delay: 500, ms: 160, colour: "Green" }
+    : colour === "Manual"
+      ? { from: "engine", to: "cases", label: "Merchant account: referred to Manual review queue", delay: 500, colour: "Manual" }
+      : { from: "engine", to: "cases", label: "Continue block: sent for human review", delay: 500, colour: "Red" };
   return [
-    { from: "whatsapp", to: "engine", label: `Customer answered ${Object.keys(answers).length} questions in the questionnaire`, delay: 200, payload: answers },
+    { from: lane, to: "engine", label: `Customer answered ${Object.keys(answers).length} questions`, delay: 200, payload: answers },
     { from: "engine", to: "dm", label: "Scoring answers against Core Banking", delay: 500, ms: 58 },
     { from: "dm", to: "engine", label: `Response flag ${flag} → ${colour}`, delay: 600, colour },
-    clears
-      ? { from: "engine", to: "enforce", label: "Transaction verified by customer, freeze lifted, no case", delay: 500, ms: 160, colour: "Green" }
-      : { from: "engine", to: "voice", label: "Not cleared, starting voice bot", delay: 500 },
+    end,
   ];
 }

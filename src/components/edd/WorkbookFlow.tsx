@@ -12,16 +12,17 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cbsProfiles, greeting, questionsFor, workbookAlerts } from "@/data/workbook";
 import { toAttrs } from "@/data/scenarios";
-import { answerPoints, dataChecks, defaultThresholds, waCheckOutcome, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
+import { answerPoints, dataChecks, defaultThresholds, stepOutcome, SHEET_STEPS, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
 import { useEDD } from "@/lib/edd-store";
 import { summariseFlowCase } from "@/lib/rule-ai.functions";
-import { CaseCreatedCard, EngineConsole, FlowLanes, PhoneCall, PhoneWhatsApp, type StampedEvent } from "@/components/edd/live/LiveFlow";
+import { CaseCreatedCard, EngineConsole, FlowLanes, PhoneCall, type StampedEvent } from "@/components/edd/live/LiveFlow";
 import { QuestionnaireWindow } from "@/components/edd/live/QuestionnaireWindow";
-import { caseEvents, intakeEvents, whatsappEvents, type FlowEvent } from "@/lib/flow-events";
+import { caseEvents, intakeEvents, scoreEvents, type FlowEvent } from "@/lib/flow-events";
+import { RealVoicePanel, RealWhatsAppPanel, type ChannelLog } from "@/components/edd/RealChannels";
 
-const STEPS = ["Data checks", "Customer questionnaire", "Voice bot", "Email & app alert", "Exit / Manual queue", "Case & human review"];
-type Phase = "idle" | "checks" | "wa_check" | "voice" | "notify" | "exit" | "human" | "verified" | "done";
-const phaseIdx: Record<Phase, number> = { idle: -1, checks: 0, wa_check: 1, voice: 2, notify: 3, exit: 4, human: 5, verified: 6, done: 6 };
+const STEPS = SHEET_STEPS;
+type Phase = "idle" | "checks" | "voice" | "bitly" | "notify" | "human" | "verified" | "done";
+const phaseIdx: Record<Phase, number> = { idle: -1, checks: 0, voice: 1, bitly: 2, notify: 3, human: 5, verified: 6, done: 6 };
 
 interface LogLine { step: string; colour: Colour; text: string }
 
@@ -55,7 +56,6 @@ export function WorkbookFlow() {
   const [speed, setSpeed] = useState(1);
   const [presenter, setPresenter] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [waMsgs, setWaMsgs] = useState<{ who: "bank" | "cust"; text: string; ticks?: boolean }[]>([]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const stamp = (e: FlowEvent): StampedEvent => ({ ...e, at: new Date().toLocaleTimeString("en-IN", { hour12: false }) });
@@ -105,31 +105,30 @@ export function WorkbookFlow() {
       setChecks(r.checks);
       const fired = r.checks.find((c) => c.fired);
       add("Step 1 Data checks", r.outcome, fired ? `${fired.label}: ${fired.detail}.` : "No check fired.", undefined);
-      if (negbase) {
-        const cid = storeRef.current.applyTriage(triageRef.current!, "Further Investigation", `${alert.type} flow: Negative Database hit`);
+      if (r.outcome === "Red") {
+        const cid = storeRef.current.applyTriage(triageRef.current!, "Further Investigation", `${alert.type} flow: Step 1 ${negbase ? "Negative Database hit" : fired?.label ?? "check fired"}`);
         setCaseId(cid);
-        play(caseEvents(cid, alert.account));
+        play([...caseEvents(cid, alert.account), { from: "engine", to: "cases", label: "Continue block: human in the loop", delay: 300, colour: "Red" }]);
         setPhase("human");
         return;
       }
-      setWaMsgs([{ who: "bank", text: `Airtel Payments Bank: we noticed a transaction of Rs ${alert.amount.toLocaleString("en-IN")} on your account ending ${alert.account.slice(-4)}. Please confirm a few details so we can verify it.`, ticks: true }, { who: "bank", text: "Answer here: https://bit.ly/edsq-q" }]);
-      play([{ from: "engine", to: "whatsapp", label: "Verification questionnaire sent to customer", delay: 200, ms: 640 }]);
-      setPhase("wa_check");
+      play([{ from: "engine", to: "voice", label: "Step 1 passed: starting Step 2 voice bot", delay: 300 }]);
+      setPhase("voice");
     });
   };
 
-  const noResponse = () => {
+  const noResponse = (reason?: string) => {
     if (phase === "voice") {
       const n = attempts + 1;
       setAttempts(n);
-      play([{ from: "engine", to: "voice", label: `Dialling customer, attempt ${n}`, delay: 200, ms: 1800 }, { from: "voice", to: "engine", label: "No answer / disconnected", delay: 900, colour: "Amber" }, ...(n >= th.voiceRetries ? [{ from: "engine" as const, to: "whatsapp" as const, label: "Retries exhausted, switching to WhatsApp", delay: 500 }] : [])]);
-      add("Step 2 Voice bot", "Amber", `Attempt ${n}/${th.voiceRetries}: no response / call disconnected.`);
-      if (n >= th.voiceRetries) { play([{ from: "engine", to: "source", label: "Email + app push sent", delay: 600, ms: 140 }]); setPhase("notify"); }
-    } else if (phase === "wa_check") {
-      add("Step 2 Questionnaire", "Amber", "No reply to the questionnaire. Moving to voice bot.");
-      play([{ from: "whatsapp", to: "engine", label: "No reply within window", delay: 300, colour: "Amber" }, { from: "engine", to: "voice", label: "Starting voice bot", delay: 400 }]);
+      play([{ from: "engine", to: "voice", label: `Dialling customer, attempt ${n}`, delay: 200, ms: 1800 }, { from: "voice", to: "engine", label: reason ?? "No answer / disconnected", delay: 900, colour: "Amber" }, ...(n >= th.voiceRetries ? [{ from: "engine" as const, to: "whatsapp" as const, label: "Retries exhausted: Step 3 WhatsApp / self-service questionnaire", delay: 500, ms: 640 }] : [])]);
+      add("Step 2 Voice bot", "Amber", `Attempt ${n}/${th.voiceRetries}: ${reason ?? "no response / call disconnected"}.`);
+      if (n >= th.voiceRetries) { setAnswers({}); setPhase("bitly"); }
+    } else if (phase === "bitly") {
+      add("Step 3 WhatsApp questionnaire", "Amber", `${reason ?? "No reply to the questionnaire"}. Moving to email & app alert.`);
+      play([{ from: "whatsapp", to: "engine", label: "No reply within window", delay: 300, colour: "Amber" }, { from: "engine", to: "source", label: "Step 4: email + mobile app alert sent with questionnaire", delay: 500, ms: 140 }]);
       setAnswers({});
-      setPhase("voice");
+      setPhase("notify");
     } else if (phase === "notify") {
       add("Step 4 Email & app alert", "Amber", "Email and mobile app alert sent with the questionnaire link. No response.");
       const e = exitOutcome(alert.type);
@@ -142,23 +141,20 @@ export function WorkbookFlow() {
   };
 
   const submitAnswers = () => {
-    if (phase === "wa_check") {
-      const o = waCheckOutcome(flag, merchant, th);
-      add("Step 2 Questionnaire", o.colour, `Response flag ${flag}: ${o.clears ? "transaction verified by customer. Freeze lifted, no case created." : "not cleared, moving to voice bot."}`);
-      play(whatsappEvents(answers, flag, o.colour, o.clears));
-      setAnswering(false);
-      setAnswers({});
-      if (o.clears) { setFinal("Verified by customer"); setPhase("verified"); } else setPhase("voice");
-      return;
-    }
-    const o = flagOutcome(flag, merchant, th);
-    const name = phase === "voice" ? "Step 3 Voice bot" : "Step 4 App questionnaire";
-    const text = `Response flag ${flag}${merchant ? " (merchant account)" : ""}: ${o === "Red" ? "continue block" : o === "Manual" ? "refer to Manual review queue" : "low risk, recommend unblock"}.`;
-    add(name, o, text);
-    play([{ from: "voice", to: "engine", label: `Customer answered ${qs.length} questions`, delay: 200, payload: answers }, { from: "engine", to: "dm", label: `Scoring answers against Core Banking`, delay: 500, ms: 58 }, { from: "dm", to: "engine", label: `Response flag ${flag} → ${o}`, delay: 600, colour: o }], () => ensureCase(`voice bot flag ${flag} (${o})`));
+    const o = stepOutcome(flag, merchant, th);
+    const name = phase === "voice" ? "Step 2 Voice bot" : phase === "bitly" ? "Step 3 WhatsApp questionnaire" : "Step 4 Email & app alert";
+    const text = `Response flag ${flag}${merchant ? " (merchant account)" : ""}: ${o.action === "continue_block" ? "continue block" : o.action === "manual_queue" ? "refer to Manual review queue" : "unblock, freeze lifted, no case"}.`;
+    add(name, o.colour, text);
+    play(scoreEvents(phase === "voice" ? "voice" : "whatsapp", answers, flag, o.colour), () => { if (o.action !== "unblock") ensureCase(`${name} flag ${flag} (${o.colour})`); });
     setAnswering(false);
-    setPhase("human");
+    if (o.action === "unblock") { setFinal("Unblocked: verified by customer"); setPhase("verified"); } else setPhase("human");
   };
+
+  const realLog = (step: string) => (l: ChannelLog) => {
+    add(step, l.ok ? "Amber" : "Red", l.text);
+    play([{ from: "engine", to: step.includes("Voice") ? "voice" : "whatsapp", label: l.text, delay: 100, ...(l.ms !== undefined ? { ms: l.ms } : {}), ...(l.ok ? {} : { colour: "Red" as const }) }]);
+  };
+  const realAnswers = (a: Record<string, string>) => { setAnswers(a); setAnswering(true); };
 
   const getSummary = async () => {
     setSummaryBusy(true);
@@ -183,18 +179,17 @@ export function WorkbookFlow() {
 
   const reset = () => {
     triageRef.current = undefined;
-    timers.current.forEach(clearTimeout); timers.current = []; setEvents([]); setWaMsgs([]); setBusy(false);
+    timers.current.forEach(clearTimeout); timers.current = []; setEvents([]); setBusy(false);
     setPhase("idle"); setCaseId(undefined); setChecks([]); setAttempts(0); setAnswering(false); setAnswers({}); setLog([]); setSummary(undefined); setFinal(undefined);
   };
 
   const idx = phaseIdx[phase];
-  const engaging = phase === "voice" || phase === "wa_check" || phase === "notify";
+  const engaging = phase === "voice" || phase === "bitly" || phase === "notify";
 
   const transcript = [
     ...greeting.map((g) => ({ who: "bot" as const, text: g.replace("{name}", alert.holder).replace("{last4}", alert.account.slice(-4)) })),
     ...(answering ? qs.flatMap((q) => [{ who: "bot" as const, text: q.text }, ...(answers[q.id] ? [{ who: "cust" as const, text: answers[q.id]! }] : [])]) : []),
   ];
-  const waView = [...waMsgs, ...(answering && phase === "wa_check" ? qs.filter((q) => answers[q.id]).map((q) => ({ who: "cust" as const, text: answers[q.id]! })) : [])];
 
   return (
     <div className="space-y-4">
@@ -272,7 +267,7 @@ export function WorkbookFlow() {
                 </div>
               ))}
               {phase === "human" && !log.some((l) => !l.step.startsWith("Step 1") && !l.step.startsWith("WhatsApp block")) && (
-                <Button size="sm" variant="outline" onClick={() => { add("Override", "Amber", "Reviewer chose to continue to customer engagement."); setPhase("wa_check"); }}>
+                <Button size="sm" variant="outline" onClick={() => { add("Override", "Amber", "Reviewer chose to continue to customer engagement."); setPhase("voice"); }}>
                   Continue to customer engagement anyway
                 </Button>
               )}
@@ -282,15 +277,17 @@ export function WorkbookFlow() {
           {engaging && (
             <Card className="border-primary"><CardContent className="space-y-3 py-4">
               <p className="flex items-center gap-2 text-sm font-semibold">
-                {phase === "voice" ? <Phone className="h-4 w-4" /> : phase === "wa_check" ? <MessageCircle className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
-                {phase === "voice" ? `Step 3 · Voice bot (attempt ${attempts + 1} of ${th.voiceRetries})` : phase === "wa_check" ? "Step 2 · Customer questionnaire: verify the transaction before any case" : "Step 4 · Email & mobile app alert"}
+                {phase === "voice" ? <Phone className="h-4 w-4" /> : phase === "bitly" ? <MessageCircle className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                {phase === "voice" ? `Step 2 · Voice bot (attempt ${attempts + 1} of ${th.voiceRetries})` : phase === "bitly" ? "Step 3 · WhatsApp / self-service questionnaire" : "Step 4 · Email & mobile app alert (simulated)"}
                 <Badge variant="outline">{script}</Badge>
               </p>
-              {phase === "wa_check" ? (
+              {phase === "voice" && !answering && <RealVoicePanel key={`v-${alertId}`} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 2 Voice bot")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} />}
+              {phase === "bitly" && !answering && <RealWhatsAppPanel key={`w-${alertId}`} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 3 WhatsApp questionnaire")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} />}
+              {phase === "bitly" ? (
                 <QuestionnaireWindow amount={alert.amount} last4={alert.account.slice(-4)} qs={qs} answers={answers} started={answering} busy={busy} flag={flag} colour={flagOutcome(flag, merchant, th)}
                   points={(q, a) => answerPoints(q, a, profile, alert.type)}
                   onStart={() => { setAnswering(true); play([{ from: "whatsapp", to: "engine", label: "Customer opened questionnaire", delay: 200, colour: "Green" }]); }}
-                  onNoReply={noResponse} onAnswer={(id, a) => setAnswers({ ...answers, [id]: a })} onSubmit={submitAnswers} />
+                  onNoReply={() => noResponse()} onAnswer={(id, a) => setAnswers({ ...answers, [id]: a })} onSubmit={submitAnswers} />
               ) : (
               <div className="grid gap-4 md:grid-cols-[auto_1fr]">
               {phase === "voice" ? <PhoneCall attempt={attempts + 1} retries={th.voiceRetries} connected={answering} transcript={transcript} /> : <div />}
@@ -298,8 +295,8 @@ export function WorkbookFlow() {
 
               {!answering ? (
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" disabled={busy} onClick={() => { setAnswering(true); play(phase === "voice" ? [{ from: "engine", to: "voice", label: "Dialling customer", delay: 100, ms: 1800 }, { from: "voice", to: "engine", label: "Call connected, running script", delay: 700, colour: "Green" }] : [{ from: "whatsapp", to: "engine", label: "Customer opened questionnaire", delay: 200, colour: "Green" }]); }}>Customer responds</Button>
-                  <Button size="sm" variant="outline" onClick={noResponse}><PhoneOff className="mr-2 h-4 w-4" />No response</Button>
+                  <Button size="sm" disabled={busy} onClick={() => { setAnswering(true); play(phase === "voice" ? [{ from: "engine", to: "voice", label: "Dialling customer (simulated)", delay: 100, ms: 1800 }, { from: "voice", to: "engine", label: "Call connected, running script", delay: 700, colour: "Green" }] : [{ from: "source", to: "engine", label: "Customer opened questionnaire from email / app", delay: 200, colour: "Green" }]); }}>Customer responds (simulated)</Button>
+                  <Button size="sm" variant="outline" onClick={() => noResponse()}><PhoneOff className="mr-2 h-4 w-4" />No response</Button>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -328,7 +325,7 @@ export function WorkbookFlow() {
 
           {phase === "verified" && (
             <Card className="border-success"><CardContent className="space-y-1 py-4 text-sm">
-              <p className="font-semibold text-success">Verified by customer: no case created</p>
+              <p className="font-semibold text-success">Green: unblock. Verified by customer, no case created</p>
               <p className="text-xs text-muted-foreground">The questionnaire answers matched Core Banking, so the transaction was treated as genuine and the freeze was lifted.</p>
             </CardContent></Card>
           )}

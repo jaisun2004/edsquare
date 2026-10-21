@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Inbox,
@@ -53,6 +53,8 @@ const nav = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { role, setRole, actor, alerts, resetDemo } = useEDD();
+  const path = useRouterState({ select: (st) => st.location.pathname });
+  if (path.startsWith("/q/")) return <>{children}</>;
   const newAlerts = alerts.filter((a) => a.status === "New").length;
   const hidden = new Set<string>();
   if (role !== "admin" && role !== "supervisor") hidden.add("/admin");

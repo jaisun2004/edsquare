@@ -49,3 +49,18 @@ describe("Flow", () => {
     expect(scriptFor(workbookAlerts[3]!, "voice")).toBe("Mod Script");
   });
 });
+
+import { nextOnNoResponse, stepOutcome } from "@/lib/edd-flow";
+describe("Scenario sheet order", () => {
+  it("merchant with flag above 10 continues block (not manual)", () => expect(flagOutcome(11, true)).toBe("Red"));
+  it("no response: voice -> WhatsApp/Bitly -> email & app alert -> exit", () => {
+    expect(nextOnNoResponse("voice")).toBe("bitly");
+    expect(nextOnNoResponse("bitly")).toBe("alert");
+    expect(nextOnNoResponse("alert")).toBe("exit");
+  });
+  it("flag 8-10 merchant goes to manual queue, below 8 unblocks", () => {
+    expect(stepOutcome(9, true).action).toBe("manual_queue");
+    expect(stepOutcome(7, false).action).toBe("unblock");
+    expect(stepOutcome(8, false).action).toBe("continue_block");
+  });
+});

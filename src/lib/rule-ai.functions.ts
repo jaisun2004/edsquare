@@ -163,3 +163,31 @@ Max 120 words, plain bullets. End with "Suggested: Block" or "Suggested: Unblock
     const summary = await callGateway(instructions, data.context);
     return { summary: summary.trim() };
   });
+
+export const extractCallAnswers = createServerFn({ method: "POST" })
+  .inputValidator((input: { transcript: string; questions: { id: string; text: string; options: string[] }[]; profile: string }) => {
+    if (!input.transcript || input.transcript.length > 30000) throw new Error("Transcript missing or too large.");
+    if (!Array.isArray(input.questions) || input.questions.length > 12) throw new Error("Invalid questions.");
+    return input;
+  })
+  .handler(async ({ data }) => {
+    const ids = data.questions.map((q) => q.id);
+    const schema = {
+      name: "call_answers",
+      schema: {
+        type: "object", additionalProperties: false, required: ["answers"],
+        properties: { answers: { type: "array", items: { type: "object", additionalProperties: false, required: ["id", "answer"], properties: { id: { type: "string", enum: ids }, answer: { type: "string" } } } } },
+      },
+    };
+    const instructions = `You read a bank EDD voice-bot call transcript and map the customer's spoken answers to the script questions.
+For each question return exactly one of its option labels, copied verbatim, or "" if the customer did not answer it.
+For a pincode question, compare the pincode the customer said with the core banking profile pincode: "Matches our records" if equal, otherwise "Different pincode". Transcription can be noisy ("Seltos employed" = "self employed").`;
+    const raw = await callGateway(instructions, JSON.stringify(data), schema);
+    const parsed = JSON.parse(raw) as { answers: { id: string; answer: string }[] };
+    const out: Record<string, string> = {};
+    for (const a of parsed.answers) {
+      const q = data.questions.find((x) => x.id === a.id);
+      if (q && q.options.includes(a.answer)) out[a.id] = a.answer;
+    }
+    return { answers: out };
+  });
