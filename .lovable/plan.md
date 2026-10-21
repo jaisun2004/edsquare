@@ -13,7 +13,18 @@ While running, the live call status / WhatsApp waiting status appears inside the
 - Timeline and audit trail get entries: "AI call started by <role>", outcome, "WhatsApp check sent", "Answers received", with risk score.
 - A suggested next step is shown (e.g. low risk → "Consider unblocking", high risk → "Keep blocked"); the officer still decides.
 
-Repeat attempts are allowed; each is logged separately. Closed cases show the card disabled.
+**When the options are shown:** only for a channel that was not triggered in the demo flow. If the run already placed a call, "Start AI call" is hidden (with a note "AI call already done in demo run"); same for WhatsApp. If both were done, the card just says so. Closed cases show the card disabled.
+
+## Clear step summary on the case
+The case Overview gets a "Step status" summary listing every step in sheet order, each with a clear status and time:
+- Data checks — Passed / Failed (which check)
+- AI voice call — Answered / No answer (attempts) / Not triggered
+- WhatsApp questionnaire — Submitted / No reply / Skipped / Not triggered
+- Email & app alert — Sent / Not reached
+- Case created — case number and time
+- Human review / decision — Pending / Blocked / Unblocked, by whom
+
+Steps started later from the case page update this summary and are marked "from case".
 
 ## Technical details
 - New `src/components/edd/CaseOutreach.tsx` reusing `ContactBox`, `RealVoicePanel`, `RealWhatsAppPanel` from `RealChannels.tsx`; workbook alert/profile/questions resolved from the case's linked alert (fallback to closest workbook profile).
