@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cbsProfiles, greeting, questionsFor, workbookAlerts } from "@/data/workbook";
 import { toAttrs } from "@/data/scenarios";
 import { answerPoints, dataChecks, defaultThresholds, stepOutcome, SHEET_STEPS, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
-import { useEDD } from "@/lib/edd-store";
+import { useEDD, type FlowLogEntry } from "@/lib/edd-store";
+import type { CallRecord, QuestionnaireRecord, TimelineEntry } from "@/data/edd";
 import { summariseFlowCase } from "@/lib/rule-ai.functions";
 import { CaseCreatedCard, EngineConsole, FlowLanes, PhoneCall, type StampedEvent } from "@/components/edd/live/LiveFlow";
 import { QuestionnaireWindow } from "@/components/edd/live/QuestionnaireWindow";
@@ -56,6 +57,10 @@ export function WorkbookFlow() {
   const [speed, setSpeed] = useState(1);
   const [presenter, setPresenter] = useState(false);
   const [busy, setBusy] = useState(false);
+  const pendingRef = useRef<FlowLogEntry[]>([]);
+  const callsRef = useRef<CallRecord[]>([]);
+  const qRef = useRef<QuestionnaireRecord[]>([]);
+  const caseRef = useRef<string | undefined>(undefined);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const stamp = (e: FlowEvent): StampedEvent => ({ ...e, at: new Date().toLocaleTimeString("en-IN", { hour12: false }) });
@@ -75,15 +80,39 @@ export function WorkbookFlow() {
   const merchant = isMerchant(profile);
   const running = phase !== "idle";
 
-  const add = (step: string, colour: Colour, text: string, cid = caseId) => {
+  const channelOf = (step: string): TimelineEntry["channel"] => step.includes("Voice") ? "voice" : step.includes("WhatsApp") || step.includes("Email") ? "whatsapp" : step.includes("Data") || step.includes("Check") ? "checks" : step.includes("decision") || step.includes("Exit") || step.includes("Case") ? "decision" : "system";
+  const actorOf = (step: string) => step.includes("Voice") ? "AI voice agent" : step.includes("Human") ? store.actor : "EDSquare engine";
+  const entry = (step: string, action: string, text: string): FlowLogEntry => ({ at: new Date().toISOString(), actor: actorOf(step), action, detail: text, channel: channelOf(step) });
+  const record = (e: FlowLogEntry) => {
+    const cid = caseRef.current;
+    if (cid) storeRef.current.attachFlow(cid, { events: [e] });
+    else { pendingRef.current.push(e); storeRef.current.logEvent(undefined, e.action, e.detail); }
+  };
+  const flush = (cid: string) => {
+    caseRef.current = cid;
+    storeRef.current.attachFlow(cid, { events: pendingRef.current, calls: callsRef.current, questionnaires: qRef.current });
+    pendingRef.current = [];
+  };
+  const upsert = <T extends { id: string }>(list: T[], r: T) => [...list.filter((x) => x.id !== r.id), r];
+  const onCall = (r: CallRecord) => {
+    callsRef.current = upsert(callsRef.current, r);
+    if (caseRef.current) storeRef.current.attachFlow(caseRef.current, { calls: [r] });
+  };
+  const onQuestionnaire = (r: QuestionnaireRecord) => {
+    qRef.current = upsert(qRef.current, r);
+    if (caseRef.current) storeRef.current.attachFlow(caseRef.current, { questionnaires: [r] });
+  };
+
+  const add = (step: string, colour: Colour, text: string, _cid?: string) => {
     setLog((l) => [...l, { step, colour, text }]);
-    store.logEvent(cid, `${step}: ${colour}`, text);
+    record(entry(step, `${step}: ${colour}`, text));
   };
 
   const ensureCase = (reason: string) => {
     if (caseId || !triageRef.current) return caseId;
     const cid = storeRef.current.applyTriage(triageRef.current, "Further Investigation", `${alert.type} flow: ${reason}`);
     setCaseId(cid);
+    flush(cid);
     play(caseEvents(cid, alert.account));
     return cid;
   };
@@ -104,10 +133,13 @@ export function WorkbookFlow() {
     play(intakeEvents(alert, profile, negbase, r.checks, r.outcome), () => {
       setChecks(r.checks);
       const fired = r.checks.find((c) => c.fired);
+      for (const c of r.checks) record(entry("Data check", `Check: ${c.label}`, `${c.fired ? "Fired" : "Passed"}: ${c.detail}`));
+      record(entry("Data check", "Negative Database lookup", negbase ? "Hit: account found on the Negative Database" : "No match on the Negative Database"));
       add("Step 1 Data checks", r.outcome, fired ? `${fired.label}: ${fired.detail}.` : "No check fired.", undefined);
       if (r.outcome === "Red") {
         const cid = storeRef.current.applyTriage(triageRef.current!, "Further Investigation", `${alert.type} flow: Step 1 ${negbase ? "Negative Database hit" : fired?.label ?? "check fired"}`);
         setCaseId(cid);
+        flush(cid);
         play([...caseEvents(cid, alert.account), { from: "engine", to: "cases", label: "Continue block: human in the loop", delay: 300, colour: "Red" }]);
         setPhase("human");
         return;
@@ -122,6 +154,7 @@ export function WorkbookFlow() {
       const n = attempts + 1;
       setAttempts(n);
       play([{ from: "engine", to: "voice", label: `Dialling customer, attempt ${n}`, delay: 200, ms: 1800 }, { from: "voice", to: "engine", label: reason ?? "No answer / disconnected", delay: 900, colour: "Amber" }, ...(n >= th.voiceRetries ? [{ from: "engine" as const, to: "whatsapp" as const, label: "Retries exhausted: Step 3 WhatsApp / self-service questionnaire", delay: 500, ms: 640 }] : [])]);
+      if (!reason) onCall({ id: `SIM-CALL-${Date.now()}`, attempt: n, number: "simulated", real: false, startedAt: new Date().toISOString(), endedAt: new Date().toISOString(), status: "no answer", outcome: "no_response", transcript: [] });
       add("Step 2 Voice bot", "Amber", `Attempt ${n}/${th.voiceRetries}: ${reason ?? "no response / call disconnected"}.`);
       if (n >= th.voiceRetries) { setAnswers({}); setPhase("bitly"); }
     } else if (phase === "bitly") {
@@ -144,6 +177,16 @@ export function WorkbookFlow() {
     const o = stepOutcome(flag, merchant, th);
     const name = phase === "voice" ? "Step 2 Voice bot" : phase === "bitly" ? "Step 3 WhatsApp questionnaire" : "Step 4 Email & app alert";
     const text = `Response flag ${flag}${merchant ? " (merchant account)" : ""}: ${o.action === "continue_block" ? "continue block" : o.action === "manual_queue" ? "refer to Manual review queue" : "unblock, freeze lifted, no case"}.`;
+    const scored = qs.filter((q) => answers[q.id]).map((q) => ({ question: q.text, answer: answers[q.id]!, points: answerPoints(q, answers[q.id]!, profile, alert.type) }));
+    const extra = { answers: scored, flag, colour: o.colour };
+    if (phase === "voice") {
+      const last = callsRef.current.filter((c) => c.outcome === "answered").at(-1);
+      onCall(last ? { ...last, ...extra } : { id: `SIM-CALL-${Date.now()}`, attempt: attempts + 1, number: "simulated", real: false, startedAt: new Date().toISOString(), endedAt: new Date().toISOString(), status: "completed", outcome: "answered", transcript: transcript.map((t) => ({ role: t.who === "bot" ? "agent" : "user", text: t.text })), ...extra });
+    } else if (phase === "bitly") {
+      const last = qRef.current.at(-1);
+      onQuestionnaire(last ? { ...last, outcome: "submitted", submittedAt: last.submittedAt ?? new Date().toISOString(), ...extra } : { id: `SIM-Q-${Date.now()}`, number: "simulated", real: false, sentAt: new Date().toISOString(), submittedAt: new Date().toISOString(), outcome: "submitted", ...extra });
+    }
+    record(entry(name, "Answers scored", scored.map((a) => `${a.answer} (+${a.points})`).join("; ") || "No answers"));
     add(name, o.colour, text);
     play(scoreEvents(phase === "voice" ? "voice" : "whatsapp", answers, flag, o.colour), () => { if (o.action !== "unblock") ensureCase(`${name} flag ${flag} (${o.colour})`); });
     setAnswering(false);
@@ -179,6 +222,7 @@ export function WorkbookFlow() {
 
   const reset = () => {
     triageRef.current = undefined;
+    pendingRef.current = []; callsRef.current = []; qRef.current = []; caseRef.current = undefined;
     timers.current.forEach(clearTimeout); timers.current = []; setEvents([]); setBusy(false);
     setPhase("idle"); setCaseId(undefined); setChecks([]); setAttempts(0); setAnswering(false); setAnswers({}); setLog([]); setSummary(undefined); setFinal(undefined);
   };
@@ -281,8 +325,8 @@ export function WorkbookFlow() {
                 {phase === "voice" ? `Step 2 · Voice bot (attempt ${attempts + 1} of ${th.voiceRetries})` : phase === "bitly" ? "Step 3 · WhatsApp / self-service questionnaire" : "Step 4 · Email & mobile app alert (simulated)"}
                 <Badge variant="outline">{script}</Badge>
               </p>
-              {phase === "voice" && !answering && <RealVoicePanel key={`v-${alertId}`} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 2 Voice bot")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} />}
-              {phase === "bitly" && !answering && <RealWhatsAppPanel key={`w-${alertId}`} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 3 WhatsApp questionnaire")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} />}
+              {phase === "voice" && !answering && <RealVoicePanel key={`v-${alertId}`} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 2 Voice bot")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} onCall={onCall} />}
+              {phase === "bitly" && !answering && <RealWhatsAppPanel key={`w-${alertId}`} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 3 WhatsApp questionnaire")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} onQuestionnaire={onQuestionnaire} />}
               {phase === "bitly" ? (
                 <QuestionnaireWindow amount={alert.amount} last4={alert.account.slice(-4)} qs={qs} answers={answers} started={answering} busy={busy} flag={flag} colour={flagOutcome(flag, merchant, th)}
                   points={(q, a) => answerPoints(q, a, profile, alert.type)}
