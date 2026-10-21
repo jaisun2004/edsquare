@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { STAGES } from "@/data/edd";
+import { Badge } from "@/components/ui/badge";
 import { useEDD } from "@/lib/edd-store";
 import { can } from "@/lib/roles";
 
@@ -25,9 +26,10 @@ export const Route = createFileRoute("/cases/")({
 });
 
 function CaseQueuePage() {
-  const { cases, role, moveStage, assignCase } = useEDD();
+  const { cases, demoRuns, role, moveStage, assignCase } = useEDD();
   const [grade, setGrade] = useState("all");
 
+  const liveIds = new Set(demoRuns.map((r) => r.caseId));
   const rows = cases.filter((c) => grade === "all" || c.grade === grade);
 
   return (
@@ -73,6 +75,7 @@ function CaseQueuePage() {
                         <Link to="/cases/$caseId" params={{ caseId: c.id }} className="text-sm font-medium hover:underline">
                           {c.id}
                         </Link>
+                        {liveIds.has(c.id) && <Badge variant="secondary" className="ml-2">Live demo</Badge>}
                         <p className="text-sm text-muted-foreground">{c.customer}</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           <RiskChip grade={c.grade} score={c.riskScore} />

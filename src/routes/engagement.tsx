@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { engagementTemplates } from "@/data/edd";
 import { useEDD } from "@/lib/edd-store";
+import { liveActivity, runStats } from "@/lib/demo-runs";
 
 export const Route = createFileRoute("/engagement")({
   head: () => ({
@@ -22,14 +23,22 @@ export const Route = createFileRoute("/engagement")({
 
 function EngagementPage() {
   const { cases } = useEDD();
-  const attempts = cases.flatMap((c) => c.engagement.map((e) => ({ ...e, caseId: c.id, customer: c.customer })));
-  const responded = attempts.filter((a) => a.status === "Responded").length;
+  const live = liveActivity(cases);
+  const calls = cases.flatMap((c) => c.calls ?? []);
+  const forms = cases.flatMap((c) => c.questionnaires ?? []);
+  const st = runStats([], calls, forms);
+  const attempts = [
+    ...live,
+    ...cases.flatMap((c) => c.engagement.map((e) => ({ id: e.id, caseId: c.id, customer: c.customer, channel: e.channel as string, status: e.status as string, at: e.at, outcome: e.outcome, live: false, recordingUrl: undefined as string | undefined }))),
+  ].sort((a, b) => b.at.localeCompare(a.at));
+  const isResp = (s: string) => s === "Responded" || s === "Answered" || s === "Submitted";
+  const responded = attempts.filter((a) => isResp(a.status)).length;
 
   const kpis = [
     { label: "Total attempts", value: attempts.length },
     { label: "Responses", value: responded },
     { label: "Response rate", value: attempts.length ? `${Math.round((responded / attempts.length) * 100)}%` : "0%" },
-    { label: "No response", value: attempts.filter((a) => a.status === "No Response").length },
+    { label: "No response", value: attempts.filter((a) => a.status === "No Response" || a.status === "No answer").length },
   ];
 
   return (
@@ -46,6 +55,16 @@ function EngagementPage() {
           </Card>
         ))}
       </div>
+
+      <Card className="mb-6">
+        <CardHeader><CardTitle className="text-sm">Live demo channel results</CardTitle></CardHeader>
+        <CardContent className="grid gap-4 text-sm sm:grid-cols-4">
+          <div><p className="text-xl font-semibold">{st.callsAnswered}/{st.calls}</p><p className="text-xs text-muted-foreground">Voice calls answered</p></div>
+          <div><p className="text-xl font-semibold">{st.answerRate}%</p><p className="text-xs text-muted-foreground">Voice answer rate</p></div>
+          <div><p className="text-xl font-semibold">{st.formsSubmitted}/{st.formsSent}</p><p className="text-xs text-muted-foreground">WhatsApp forms submitted</p></div>
+          <div><p className="text-xl font-semibold">{st.completionRate}%</p><p className="text-xs text-muted-foreground">Form completion rate</p></div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -69,10 +88,10 @@ function EngagementPage() {
                       <Link to="/cases/$caseId" params={{ caseId: a.caseId }} className="hover:underline">{a.caseId}</Link>
                     </TableCell>
                     <TableCell>{a.customer}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{a.channel}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{a.channel}{a.live && <Badge className="ml-2" variant="secondary">Live demo</Badge>}</TableCell>
                     <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
                     <TableCell className="text-sm text-muted-foreground">{formatDateTime(a.at)}</TableCell>
-                    <TableCell className="max-w-[280px] text-sm text-muted-foreground">{a.outcome}</TableCell>
+                    <TableCell className="max-w-[280px] text-sm text-muted-foreground">{a.outcome}{a.recordingUrl && <audio controls src={a.recordingUrl} className="mt-1 h-8 w-full" />}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

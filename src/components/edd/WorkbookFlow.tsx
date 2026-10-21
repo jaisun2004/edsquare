@@ -62,6 +62,7 @@ export function WorkbookFlow() {
   const callsRef = useRef<CallRecord[]>([]);
   const qRef = useRef<QuestionnaireRecord[]>([]);
   const caseRef = useRef<string | undefined>(undefined);
+  const runIdRef = useRef("");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [raw, setRaw] = useState("");
   const [cname, setCname] = useState("");
@@ -132,6 +133,7 @@ export function WorkbookFlow() {
   const start = () => {
     if (!canRun) return;
     if (raw) sessionStorage.setItem(PHONE_KEY, raw);
+    runIdRef.current = `RUN-${Date.now().toString(36)}`;
     const id = `AL-${alert.type}-${Math.floor(1000 + Math.random() * 9000)}`;
     store.injectAlert(
       { id, source: alert.type === "I4C" ? "External Intelligence" : "Risk Model", account: alert.account, upi: "—", customer: alert.holder, trigger: `${alert.type === "I4C" ? "I4C complaint" : "Model alert"}: ${alert.reason} (Rs ${alert.amount.toLocaleString("en-IN")})`, receivedAt: new Date().toISOString(), preliminarySignal: "H", status: "New" },
@@ -273,6 +275,23 @@ export function WorkbookFlow() {
   };
   const lastCall = callsRef.current.filter((c) => c.outcome === "answered").at(-1);
   const pathText = `Call ${lastCall ? "answered" : callsRef.current.length ? "not answered" : "not placed"} · WhatsApp ${qRef.current.length ? (qRef.current.some((q) => q.outcome === "submitted") ? "answered" : "sent, no reply") : "not sent"}${caseId ? ` · Case ${caseId}` : " · No case"}`;
+
+  const ended = phase === "verified" || phase === "human" || phase === "done";
+  useEffect(() => {
+    if (!ended || !runIdRef.current) return;
+    const last = log.at(-1);
+    const answeredCall = callsRef.current.filter((c) => c.outcome === "answered").at(-1);
+    storeRef.current.recordRun({
+      id: runIdRef.current, at: new Date().toISOString(), alertType: alert.type, account: alert.account, customer: alert.holder,
+      number: callsRef.current[0]?.number ?? qRef.current[0]?.number,
+      colour: phase === "verified" ? "Green" : (last?.colour as "Red" | "Amber" | "Green" | "Manual" | undefined) ?? "Red",
+      outcome: final ?? last?.text ?? "", caseId,
+      callAnswered: !!answeredCall, callAttempts: callsRef.current.length,
+      whatsappSent: qRef.current.length > 0, formSubmitted: qRef.current.some((q) => q.outcome === "submitted"),
+      recordingUrl: answeredCall?.recordingUrl,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ended, phase, caseId, final, log.length]);
 
   const transcript = [
     ...greeting.map((g) => ({ who: "bot" as const, text: g.replace("{name}", alert.holder).replace("{last4}", alert.account.slice(-4)) })),

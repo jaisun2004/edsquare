@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { inflowSeries, teamWorkload } from "@/data/edd";
+import { LatestDemoRuns } from "@/components/edd/DemoRuns";
 import { useEDD } from "@/lib/edd-store";
 import { roleLabels } from "@/lib/roles";
 
@@ -172,6 +173,7 @@ function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      <div className="mt-6"><LatestDemoRuns /></div>
     </div>
   );
 }

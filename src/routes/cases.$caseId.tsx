@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useEDD } from "@/lib/edd-store";
 import { CaseCalls, CaseTimeline } from "@/components/edd/CaseRecords";
 import { can } from "@/lib/roles";
+import { DemoRunSummary } from "@/components/edd/DemoRuns";
 import type { Channel, Recommendation } from "@/data/edd";
 
 export const Route = createFileRoute("/cases/$caseId")({
@@ -32,8 +33,9 @@ export const Route = createFileRoute("/cases/$caseId")({
 
 function CaseDetailPage() {
   const { caseId } = Route.useParams();
-  const { cases, role, requestEnrichment, startEngagement, saveRationale, decide, addNote } = useEDD();
+  const { cases, demoRuns, role, requestEnrichment, startEngagement, saveRationale, decide, addNote } = useEDD();
   const item = cases.find((c) => c.id === caseId);
+  const run = demoRuns.find((r) => r.caseId === caseId);
 
   const [rationaleText, setRationaleText] = useState(item?.rationale?.text ?? "");
   const [evidence, setEvidence] = useState(item?.rationale?.evidence ?? false);
@@ -113,6 +115,7 @@ function CaseDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 grid gap-4 lg:grid-cols-2">
+          {run && <DemoRunSummary run={run} />}
           <Card>
             <CardHeader><CardTitle className="text-sm">Risk score</CardTitle></CardHeader>
             <CardContent>

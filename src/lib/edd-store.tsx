@@ -1,5 +1,6 @@
 import type { CallRecord, QuestionnaireRecord } from "@/data/edd";
-import { createContext, useContext, useMemo, useState, type Context, type ReactNode } from "react";
+import type { DemoRun } from "@/lib/demo-runs";
+import { createContext, useContext, useEffect, useMemo, useState, type Context, type ReactNode } from "react";
 import {
   alerts as seedAlerts,
   audit as seedAudit,
@@ -93,10 +94,13 @@ interface StoreValue {
   resetDemo: () => void;
   injectAlert: (alert: Alert, attrs: AttrMap) => void;
   logEvent: (caseId: string | undefined, action: string, detail: string) => void;
+  demoRuns: DemoRun[];
+  recordRun: (run: DemoRun) => void;
   attachFlow: (caseId: string, f: { events?: FlowLogEntry[]; calls?: CallRecord[]; questionnaires?: QuestionnaireRecord[] }) => void;
 }
 
 // Keep one context object across hot reloads so an edited store module never orphans the mounted provider.
+const DEMO_KEY = "edsquare.demoRuns";
 const g = globalThis as { __eddStoreContext?: Context<StoreValue | null> };
 const StoreContext = (g.__eddStoreContext ??= createContext<StoreValue | null>(null));
 
@@ -116,6 +120,25 @@ export function EDDProvider({ children }: { children: ReactNode }) {
   const [enforcement, setEnforcement] = useState<EnforcementEntry[]>(() => clone(seedEnforcement));
   const [audit, setAudit] = useState<AuditEntry[]>(() => clone(seedAudit));
   const [extraAttrs, setExtraAttrs] = useState<Record<string, AttrMap>>({});
+  const [demoRuns, setDemoRuns] = useState<DemoRun[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  // Keep demo runs and the cases they created for the browser session.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(DEMO_KEY) ?? "null") as { runs: DemoRun[]; cases: EDDCase[] } | null;
+      if (saved) {
+        setDemoRuns(saved.runs);
+        setCases((prev) => [...saved.cases.filter((c) => !prev.some((p) => p.id === c.id)), ...prev]);
+      }
+    } catch { /* ignore */ }
+    setLoaded(true);
+  }, []);
+  useEffect(() => {
+    if (!loaded) return;
+    const ids = new Set(demoRuns.map((r) => r.caseId).filter(Boolean));
+    sessionStorage.setItem(DEMO_KEY, JSON.stringify({ runs: demoRuns, cases: cases.filter((c) => ids.has(c.id)) }));
+  }, [loaded, demoRuns, cases]);
 
   const actor = roleActors[role];
 
@@ -478,6 +501,9 @@ export function EDDProvider({ children }: { children: ReactNode }) {
         if (caseId) appendTimeline(caseId, action, detail);
       },
 
+      demoRuns,
+      recordRun: (run) => setDemoRuns((prev) => [run, ...prev.filter((r) => r.id !== run.id)]),
+
       attachFlow: (caseId, f) => {
         const evs = (f.events ?? []).map((e) => ({ id: uid("T"), at: e.at, actor: e.actor, action: e.action, detail: e.detail, channel: e.channel }) satisfies TimelineEntry);
         setCases((prev) => prev.map((c) => {
@@ -496,6 +522,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
 
       resetDemo: () => {
         setExtraAttrs({});
+        setDemoRuns([]);
         setAlerts(clone(seedAlerts));
         setCases(clone(seedCases));
         setRules(clone(seedRuleDefs));
@@ -506,7 +533,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
         setAudit(clone(seedAudit));
       },
     };
-  }, [role, actor, alerts, cases, rules, ruleSets, ruleGroups, sources, attributes, policyVersions, negbase, enforcement, audit, extraAttrs]);
+  }, [role, actor, alerts, cases, rules, ruleSets, ruleGroups, sources, attributes, policyVersions, negbase, enforcement, audit, extraAttrs, demoRuns]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
