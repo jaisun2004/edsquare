@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 - Decision Manager logic lives in the pure `src/lib/rule-engine.ts`, with data in `src/data/sources.ts` (sources/attributes) and `src/data/policy.ts` (hierarchy); why: triage, the rule builder and the simulation must share one evaluator.
 - AI rule drafting / Q&A runs only in `src/lib/rule-ai.functions.ts` server functions via the Lovable AI Gateway; why: keeps the API key server-side and AI output is constrained to the attribute catalogue.
+- The workbook EDD flow (data checks, voice bot, questionnaire, exit, human review) lives in the pure `src/lib/edd-flow.ts` with sample data in `src/data/workbook.ts`, tested by Vitest; why: the simulator and future case screens must share one tested step engine.
