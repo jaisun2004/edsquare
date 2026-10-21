@@ -33,8 +33,9 @@ export function dataChecks(alert: WorkbookAlert, p: CbsProfile, negbaseHit: bool
 export const isMerchant = (p: CbsProfile) => p.accountType === "Current";
 
 export function flagOutcome(flag: number, merchant: boolean, t: Thresholds = defaultThresholds): Colour {
-  if (merchant && flag >= t.flagReview) return "Manual";
+  // Scenario sheet: >10 continue block; 8-10 non-merchant continue block; 8-10 merchant -> Manual review queue.
   if (flag > t.flagBlock) return "Red";
+  if (merchant && flag >= t.flagReview) return "Manual";
   if (flag >= t.flagReview) return "Red";
   return "Green";
 }
@@ -72,8 +73,16 @@ export function exitOutcome(type: "I4C" | "Model"): { colour: Colour; text: stri
     : { colour: "Manual", text: "No response from customer: moved to the Manual review queue." };
 }
 
-/** WhatsApp pre-call check: only a Green response clears the customer without creating a case. */
-export function waCheckOutcome(flag: number, merchant: boolean, t: Thresholds = defaultThresholds): { colour: Colour; clears: boolean } {
+/** Sheet steps 1-5 in order. */
+export const SHEET_STEPS = ["Data checks", "Voice bot", "WhatsApp / self-service questionnaire", "Email & mobile app alert", "Exit / Manual queue", "Human in the loop"] as const;
+
+/** Outcome of a scored step (2, 3 or 4): Green unblocks, Red continues block, Manual goes to the review queue. */
+export function stepOutcome(flag: number, merchant: boolean, t: Thresholds = defaultThresholds): { colour: Colour; action: "unblock" | "continue_block" | "manual_queue" } {
   const colour = flagOutcome(flag, merchant, t);
-  return { colour, clears: colour === "Green" };
+  return { colour, action: colour === "Green" ? "unblock" : colour === "Manual" ? "manual_queue" : "continue_block" };
+}
+
+/** Where "no response" at a step leads, per the sheet. */
+export function nextOnNoResponse(step: "voice" | "bitly" | "alert"): "bitly" | "alert" | "exit" {
+  return step === "voice" ? "bitly" : step === "bitly" ? "alert" : "exit";
 }
