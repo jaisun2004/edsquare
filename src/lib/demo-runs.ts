@@ -4,6 +4,7 @@ export type RunColour = "Red" | "Amber" | "Green" | "Manual";
 
 export interface DemoRun {
   id: string;
+  alertId?: string | undefined;
   at: string;
   alertType: string;
   account: string;
