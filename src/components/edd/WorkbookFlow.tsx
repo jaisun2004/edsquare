@@ -35,7 +35,7 @@ const colourCls: Record<Colour, string> = {
   Manual: "border-primary text-primary",
 };
 
-export function WorkbookFlow({ initialAlert }: { initialAlert?: string | undefined } = {}) {
+export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?: string | undefined; fromAlert?: string | undefined; auto?: boolean | undefined } = {}) {
   const store = useEDD();
   const storeRef = useRef(store);
   storeRef.current = store;
@@ -72,7 +72,13 @@ export function WorkbookFlow({ initialAlert }: { initialAlert?: string | undefin
   const [offline, setOffline] = useState(false);
   const [retryIn, setRetryIn] = useState(0);
   const [pendingVoice, setPendingVoice] = useState<{ o: ReturnType<typeof stepOutcome>; answers: Record<string, string>; flag: number }>();
-  useEffect(() => setRaw(sessionStorage.getItem(PHONE_KEY) ?? ""), []);
+  const [autoGo, setAutoGo] = useState(false);
+  useEffect(() => {
+    const saved = sessionStorage.getItem(PHONE_KEY) ?? "";
+    setRaw(saved);
+    if (auto) { if (!validPhone(normalisePhone(saved))) setOffline(true); setAutoGo(true); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => { if (retryIn <= 0) return; const t = setTimeout(() => setRetryIn((r) => r - 1), 1000); return () => clearTimeout(t); }, [retryIn]);
 
   const stamp = (e: FlowEvent): StampedEvent => ({ ...e, at: new Date().toLocaleTimeString("en-IN", { hour12: false }) });
@@ -93,6 +99,12 @@ export function WorkbookFlow({ initialAlert }: { initialAlert?: string | undefin
   useEffect(() => setCname(normalName(alert.holder)), [alert.holder]);
   const contact: Contact = { phone: normalisePhone(raw), name: cname, lang };
   const canRun = offline || (validPhone(contact.phone) && cname.trim().length > 0);
+  useEffect(() => {
+    if (!autoGo || phase !== "idle" || !canRun) return;
+    setAutoGo(false);
+    start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoGo, phase, canRun]);
   const running = phase !== "idle";
 
   const channelOf = (step: string): TimelineEntry["channel"] => step.includes("Voice") ? "voice" : step.includes("WhatsApp") || step.includes("Email") ? "whatsapp" : step.includes("Data") || step.includes("Check") ? "checks" : step.includes("decision") || step.includes("Exit") || step.includes("Case") ? "decision" : "system";
@@ -141,7 +153,7 @@ export function WorkbookFlow({ initialAlert }: { initialAlert?: string | undefin
     if (raw) sessionStorage.setItem(PHONE_KEY, raw);
     runIdRef.current = `RUN-${Date.now().toString(36)}`;
     contactRef.current = { ...contact };
-    const id = `AL-${alert.type}-${Date.now().toString(36).toUpperCase()}`;
+    const id = fromAlert ?? `AL-${alert.type}-${Date.now().toString(36).toUpperCase()}`;
     store.injectAlert(
       { id, source: alert.type === "I4C" ? "External Intelligence" : "Risk Model", account: alert.account, upi: "—", customer: alert.holder, trigger: `${alert.type === "I4C" ? "I4C complaint" : "Model alert"}: ${alert.reason} (Rs ${alert.amount.toLocaleString("en-IN")})`, receivedAt: new Date().toISOString(), preliminarySignal: "H", status: "New" },
       toAttrs({ customer: alert.holder, account: alert.account, upi: "", amount: alert.amount, channel: "IMPS", counterparties: alert.credits.length + alert.debits.length, accountAgeDays: profile.vintageMonths * 30, dormantDays: 0, passThroughPct: alert.debits.length ? 80 : 20, simSwap: false, newDevice: false, negbaseHit: negbase, complaints: alert.type === "I4C" ? 1 : 0 }),

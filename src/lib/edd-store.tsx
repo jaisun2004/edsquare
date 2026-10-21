@@ -552,7 +552,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
 
       injectAlert: (alert, attrs) => {
         setExtraAttrs((prev) => ({ ...prev, [alert.id]: attrs }));
-        setAlerts((prev) => [alert, ...prev]);
+        setAlerts((prev) => (prev.some((a) => a.id === alert.id) ? prev.map((a) => { if (a.id !== alert.id) return a; const { caseId: _c, ...rest } = a; return { ...rest, status: "New" as const }; }) : [alert, ...prev]));
         logAudit("Simulated transaction ingested", "—", `${alert.id} New`);
       },
 
