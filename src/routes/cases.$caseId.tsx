@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useEDD } from "@/lib/edd-store";
 import { CaseCalls, CaseTimeline } from "@/components/edd/CaseRecords";
 import { can } from "@/lib/roles";
+import { JourneyStrip } from "@/components/edd/Journey";
+import { alertJourney } from "@/lib/alert-journey";
 import { DemoRunSummary } from "@/components/edd/DemoRuns";
 import type { Channel, Recommendation } from "@/data/edd";
 
@@ -33,7 +35,7 @@ export const Route = createFileRoute("/cases/$caseId")({
 
 function CaseDetailPage() {
   const { caseId } = Route.useParams();
-  const { cases, demoRuns, role, requestEnrichment, startEngagement, saveRationale, decide, addNote } = useEDD();
+  const { cases, demoRuns, alerts, enforcement, role, requestEnrichment, startEngagement, saveRationale, decide, addNote } = useEDD();
   const item = cases.find((c) => c.id === caseId);
   const run = demoRuns.find((r) => r.caseId === caseId);
 
@@ -53,6 +55,8 @@ function CaseDetailPage() {
     );
   }
 
+  const srcAlert = alerts.find((a) => a.caseId === item.id) ?? alerts.find((a) => a.id === run?.alertId);
+  const journey = srcAlert ? alertJourney(srcAlert, cases, enforcement, demoRuns) : undefined;
   const decisionBlocked = !item.rationale || !can(role, "decide") || (item.grade === "VH" && !can(role, "approveVeryHigh"));
 
   const act = (outcome: Recommendation) => {
@@ -82,6 +86,8 @@ function CaseDetailPage() {
           </div>
         )}
       </div>
+
+      {journey && <JourneyStrip j={journey} />}
 
       <Card className="border-primary/30 bg-primary/5">
         <CardContent className="flex flex-wrap items-center gap-3 py-4">

@@ -17,6 +17,7 @@ import { Route as EnforcementRouteImport } from './routes/enforcement'
 import { Route as EngagementRouteImport } from './routes/engagement'
 import { Route as InvestigationsRouteImport } from './routes/investigations'
 import { Route as NegativeDatabaseRouteImport } from './routes/negative-database'
+import { Route as OutcomesRouteImport } from './routes/outcomes'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SimulatorRouteImport } from './routes/simulator'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -71,6 +72,11 @@ const InvestigationsRoute = InvestigationsRouteImport.update({
 const NegativeDatabaseRoute = NegativeDatabaseRouteImport.update({
   id: '/negative-database',
   path: '/negative-database',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OutcomesRoute = OutcomesRouteImport.update({
+  id: '/outcomes',
+  path: '/outcomes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsRoute = ReportsRouteImport.update({
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/engagement': typeof EngagementRoute
   '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
+  '/outcomes': typeof OutcomesRoute
   '/reports': typeof ReportsRoute
   '/simulator': typeof SimulatorRoute
   '/admin/consent': typeof AdminConsentRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/engagement': typeof EngagementRoute
   '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
+  '/outcomes': typeof OutcomesRoute
   '/reports': typeof ReportsRoute
   '/simulator': typeof SimulatorRoute
   '/admin/consent': typeof AdminConsentRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/engagement': typeof EngagementRoute
   '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
+  '/outcomes': typeof OutcomesRoute
   '/reports': typeof ReportsRoute
   '/simulator': typeof SimulatorRoute
   '/admin/consent': typeof AdminConsentRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/engagement'
     | '/investigations'
     | '/negative-database'
+    | '/outcomes'
     | '/reports'
     | '/simulator'
     | '/admin/consent'
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/engagement'
     | '/investigations'
     | '/negative-database'
+    | '/outcomes'
     | '/reports'
     | '/simulator'
     | '/admin/consent'
@@ -284,6 +295,7 @@ export interface FileRouteTypes {
     | '/engagement'
     | '/investigations'
     | '/negative-database'
+    | '/outcomes'
     | '/reports'
     | '/simulator'
     | '/admin/consent'
@@ -310,6 +322,7 @@ export interface RootRouteChildren {
   EngagementRoute: typeof EngagementRoute
   InvestigationsRoute: typeof InvestigationsRoute
   NegativeDatabaseRoute: typeof NegativeDatabaseRoute
+  OutcomesRoute: typeof OutcomesRoute
   ReportsRoute: typeof ReportsRoute
   SimulatorRoute: typeof SimulatorRoute
   CasesCaseIdRoute: typeof CasesCaseIdRoute
@@ -373,6 +386,13 @@ declare module '@tanstack/react-router' {
       path: '/negative-database'
       fullPath: '/negative-database'
       preLoaderRoute: typeof NegativeDatabaseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/outcomes': {
+      id: '/outcomes'
+      path: '/outcomes'
+      fullPath: '/outcomes'
+      preLoaderRoute: typeof OutcomesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
@@ -520,6 +540,7 @@ const rootRouteChildren: RootRouteChildren = {
   EngagementRoute: EngagementRoute,
   InvestigationsRoute: InvestigationsRoute,
   NegativeDatabaseRoute: NegativeDatabaseRoute,
+  OutcomesRoute: OutcomesRoute,
   ReportsRoute: ReportsRoute,
   SimulatorRoute: SimulatorRoute,
   CasesCaseIdRoute: CasesCaseIdRoute,
