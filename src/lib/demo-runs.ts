@@ -4,6 +4,8 @@ export type RunColour = "Red" | "Amber" | "Green" | "Manual";
 
 export interface DemoRun {
   id: string;
+  /** Built-in sample scenario from the test sheet (not a live run). */
+  sample?: boolean | undefined;
   alertId?: string | undefined;
   at: string;
   alertType: string;
