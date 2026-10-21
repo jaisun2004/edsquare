@@ -1,3 +1,4 @@
+import type { CallRecord, QuestionnaireRecord } from "@/data/edd";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import {
   alerts as seedAlerts,
@@ -34,6 +35,8 @@ import { availableAttrs, runPolicy, type PolicyResult } from "@/lib/rule-engine"
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
+
+export interface FlowLogEntry { at: string; actor: string; action: string; detail: string; channel: TimelineEntry["channel"] }
 
 export interface TriageResult {
   alertId: string;
@@ -90,6 +93,7 @@ interface StoreValue {
   resetDemo: () => void;
   injectAlert: (alert: Alert, attrs: AttrMap) => void;
   logEvent: (caseId: string | undefined, action: string, detail: string) => void;
+  attachFlow: (caseId: string, f: { events?: FlowLogEntry[]; calls?: CallRecord[]; questionnaires?: QuestionnaireRecord[] }) => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -470,6 +474,16 @@ export function EDDProvider({ children }: { children: ReactNode }) {
       logEvent: (caseId, action, detail) => {
         logAudit(action, "—", detail, caseId);
         if (caseId) appendTimeline(caseId, action, detail);
+      },
+
+      attachFlow: (caseId, f) => {
+        const evs = (f.events ?? []).map((e) => ({ id: uid("T"), at: e.at, actor: e.actor, action: e.action, detail: e.detail, channel: e.channel }) satisfies TimelineEntry);
+        setCases((prev) => prev.map((c) => {
+          if (c.id !== caseId) return c;
+          const merge = <T extends { id: string }>(a: T[] = [], b: T[] = []) => [...a.filter((x) => !b.some((y) => y.id === x.id)), ...b];
+          return { ...c, timeline: [...c.timeline, ...evs].sort((a, b) => a.at.localeCompare(b.at)), calls: merge(c.calls, f.calls), questionnaires: merge(c.questionnaires, f.questionnaires) };
+        }));
+        for (const e of f.events ?? []) logAudit(e.action, "—", e.detail, caseId);
       },
 
       injectAlert: (alert, attrs) => {

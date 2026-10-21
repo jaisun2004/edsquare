@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CbsProfile, ScriptQuestion, WorkbookAlert } from "@/data/workbook";
-import { callState, normalName } from "@/lib/voice";
+import { callState, normalName, normalisePhone, prettyPhone } from "@/lib/voice";
+import type { CallRecord, QuestionnaireRecord } from "@/data/edd";
 import { dispatchVoiceCall, getVoiceCall, type VoiceCallView } from "@/lib/voice.functions";
 import { extractCallAnswers } from "@/lib/rule-ai.functions";
 import { sendWhatsAppText } from "@/lib/whatsapp.functions";
@@ -20,10 +21,17 @@ const MAX = 3;
 const BANK = "Airtel Payments Bank";
 
 function usePhone() {
-  const [phone, setPhone] = useState("");
-  useEffect(() => setPhone(sessionStorage.getItem(PHONE_KEY) ?? ""), []);
+  const [raw, setRaw] = useState("");
+  useEffect(() => setRaw(sessionStorage.getItem(PHONE_KEY) ?? ""), []);
   const save = (p: string) => sessionStorage.setItem(PHONE_KEY, p);
-  return [phone, (v: string) => setPhone(v.replace(/\D/g, "")), save] as const;
+  return [normalisePhone(raw), raw, (v: string) => setRaw(v.replace(/[^\d+ ]/g, "")), save] as const;
+}
+
+function DialHint({ phone, raw }: { phone: string; raw: string }) {
+  if (!raw) return null;
+  return /^\d{10,15}$/.test(phone)
+    ? <p className="text-[11px] text-muted-foreground">Will dial {prettyPhone(phone)}{phone !== raw.replace(/\D/g, "") ? " (country code added)" : ""}</p>
+    : <p className="text-[11px] text-destructive">Enter a 10-digit mobile number</p>;
 }
 
 export interface ChannelLog { text: string; ok: boolean; ms?: number }
@@ -35,6 +43,8 @@ interface Common {
   onLog: (l: ChannelLog) => void;
   onAnswers: (answers: Record<string, string>) => void;
   onNoResponse: (reason: string) => void;
+  onCall?: (r: CallRecord) => void;
+  onQuestionnaire?: (r: QuestionnaireRecord) => void;
 }
 
 const inr = (n: number) => n.toLocaleString("en-IN");
@@ -43,7 +53,7 @@ export function RealVoicePanel(p: Common) {
   const dispatch = useServerFn(dispatchVoiceCall);
   const poll = useServerFn(getVoiceCall);
   const extract = useServerFn(extractCallAnswers);
-  const [phone, setPhone, savePhone] = usePhone();
+  const [phone, raw, setPhone, savePhone] = usePhone();
   const [name, setName] = useState(normalName(p.alert.holder));
   const [lang, setLang] = useState<"ENGLISH" | "HINDI">("ENGLISH");
   const [used, setUsed] = useState(0);
@@ -61,10 +71,13 @@ export function RealVoicePanel(p: Common) {
     if (!window.confirm(`Place a real AI voice call to +${phone}?`)) return;
     savePhone(phone);
     setErr(undefined); setView(undefined); setStage("dialling"); setUsed((n) => n + 1);
+    const attempt = used + 1;
+    const started = new Date().toISOString();
+    const rec = (v: VoiceCallView | undefined, outcome: CallRecord["outcome"], extra: Partial<CallRecord> = {}): CallRecord => ({ id: `CALL-${Date.parse(started)}`, attempt, number: maskNumber(phone), real: true, startedAt: v?.startedAt ?? started, endedAt: v?.endedAt ?? new Date().toISOString(), status: v?.status ?? outcome, outcome, disposition: v?.disposition, summary: v?.summary, recordingUrl: v?.recordingUrl, partnerRecordId: v?.callId, transcript: v?.transcript ?? [], ...extra });
     try {
       const r = await dispatch({ data: { phone, session: { customer_name: normalName(name), bank_name: BANK, acct_last4: p.alert.account.slice(-4), credit_amt: inr(p.alert.amount), credit_date: p.alert.date, recent_credit_amt: String(recent), preferred_language: lang } } });
       p.onLog({ ok: r.ok, ms: r.ms, text: r.ok ? `Voice agent dispatched to ${maskNumber(phone)} (record ${r.recordId ?? "created"}).` : `Voice dispatch failed (${r.status || "no connection"}): ${r.body}` });
-      if (!r.ok) { setErr(r.body); setStage("idle"); return; }
+      if (!r.ok) { setErr(r.body); setStage("idle"); p.onCall?.(rec(undefined, "failed", { status: `dispatch failed ${r.status || ""}`.trim() })); return; }
       setStage("waiting");
       const startedAt = Date.now();
       clearInterval(timer.current);
@@ -78,6 +91,7 @@ export function RealVoicePanel(p: Common) {
           clearInterval(timer.current);
           if (st === "answered") {
             setStage("scoring");
+            p.onCall?.(rec(v, "answered", { partnerRecordId: v.callId ?? r.recordId }));
             p.onLog({ ok: true, text: `Call completed (${v.disposition ?? v.status}). ${v.summary ?? ""}`.trim() });
             try {
               const text = v.transcript.map((t) => `${t.role}: ${t.text}`).join("\n");
@@ -90,6 +104,7 @@ export function RealVoicePanel(p: Common) {
             setStage("done");
           } else {
             setStage("done");
+            p.onCall?.(rec(v.found ? v : undefined, "no_response", { partnerRecordId: v.callId ?? r.recordId }));
             p.onNoResponse(v.found ? `Call ${v.status ?? "ended"} without an answer` : "No call record after 6 minutes");
           }
         } catch (e) { setErr(e instanceof Error ? e.message : "Polling failed."); }
@@ -103,7 +118,7 @@ export function RealVoicePanel(p: Common) {
     <div className="space-y-2 rounded-md border border-dashed p-3">
       <p className="flex items-center gap-2 text-xs font-semibold"><Phone className="h-3.5 w-3.5" />Real AI voice call (optional)</p>
       <div className="grid grid-cols-3 gap-2">
-        <div className="space-y-1"><Label className="text-xs">Mobile (e.g. 919081657821)</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="91XXXXXXXXXX" disabled={stage === "waiting"} /></div>
+        <div className="space-y-1"><Label className="text-xs">Mobile (country code optional)</Label><Input value={raw} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit mobile" disabled={stage === "waiting"} /><DialHint phone={phone} raw={raw} /></div>
         <div className="space-y-1"><Label className="text-xs">Customer name</Label><Input value={name} onChange={(e) => setName(e.target.value)} disabled={stage === "waiting"} /></div>
         <div className="space-y-1"><Label className="text-xs">Language</Label>
           <Select value={lang} onValueChange={(v) => setLang(v as "ENGLISH" | "HINDI")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ENGLISH">English</SelectItem><SelectItem value="HINDI">Hindi</SelectItem></SelectContent></Select>
@@ -138,7 +153,7 @@ export function RealWhatsAppPanel(p: Common) {
   const create = useServerFn(createQuestionnaire);
   const send = useServerFn(sendWhatsAppText);
   const read = useServerFn(getQuestionnaire);
-  const [phone, setPhone, savePhone] = usePhone();
+  const [phone, raw, setPhone, savePhone] = usePhone();
   const [used, setUsed] = useState(0);
   const [stage, setStage] = useState<"idle" | "sending" | "waiting" | "done">("idle");
   const [link, setLink] = useState<string>();
@@ -163,7 +178,10 @@ export function RealWhatsAppPanel(p: Common) {
       const message = `Dear ${normalName(p.alert.holder)}, ${BANK} noticed a credit of Rs ${inr(p.alert.amount)} on your A/c ending ${p.alert.account.slice(-4)}. Please confirm a few details here: ${url}`;
       const r = await send({ data: { to: phone, message } });
       p.onLog({ ok: r.ok, ms: r.ms, text: r.ok ? `WhatsApp questionnaire sent to ${maskNumber(phone)}${r.messageId ? " (message accepted)" : ""}.` : `WhatsApp send failed (${r.status || "no connection"}): ${r.body}` });
-      if (!r.ok) { setErr(r.body); setStage("idle"); return; }
+      const sentAt = new Date().toISOString();
+      const qrec = (outcome: QuestionnaireRecord["outcome"], submittedAt?: string): QuestionnaireRecord => ({ id: `Q-${token.slice(0, 8)}`, number: maskNumber(phone), real: true, sentAt, link: url, outcome, submittedAt });
+      if (!r.ok) { setErr(r.body); setStage("idle"); p.onQuestionnaire?.(qrec("failed")); return; }
+      p.onQuestionnaire?.(qrec("no_response"));
       setStage("waiting");
       clearInterval(timer.current);
       timer.current = setInterval(async () => {
@@ -173,6 +191,7 @@ export function RealWhatsAppPanel(p: Common) {
             clearInterval(timer.current);
             setStage("done");
             p.onLog({ ok: true, text: "Customer submitted the questionnaire from their phone." });
+            p.onQuestionnaire?.(qrec("submitted", new Date().toISOString()));
             p.onAnswers(fromCustomer(q.answers));
           }
         } catch (e) { setErr(e instanceof Error ? e.message : "Polling failed."); }
@@ -186,7 +205,7 @@ export function RealWhatsAppPanel(p: Common) {
     <div className="space-y-2 rounded-md border border-dashed p-3">
       <p className="flex items-center gap-2 text-xs font-semibold"><MessageCircle className="h-3.5 w-3.5" />Real WhatsApp questionnaire (optional)</p>
       <div className="flex items-end gap-2">
-        <div className="flex-1 space-y-1"><Label className="text-xs">Mobile (e.g. 919081657821)</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="91XXXXXXXXXX" disabled={stage === "waiting"} /></div>
+        <div className="flex-1 space-y-1"><Label className="text-xs">Mobile (country code optional)</Label><Input value={raw} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit mobile" disabled={stage === "waiting"} /><DialHint phone={phone} raw={raw} /></div>
         <Button size="sm" onClick={go} disabled={!/^\d{10,15}$/.test(phone) || used >= MAX || stage === "sending" || stage === "waiting"}>
           {stage === "sending" || stage === "waiting" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageCircle className="mr-2 h-4 w-4" />}
           {stage === "waiting" ? "Waiting for answers…" : "Send WhatsApp"}
