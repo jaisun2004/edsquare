@@ -86,3 +86,9 @@ export function stepOutcome(flag: number, merchant: boolean, t: Thresholds = def
 export function nextOnNoResponse(step: "voice" | "bitly" | "alert"): "bitly" | "alert" | "exit" {
   return step === "voice" ? "bitly" : step === "bitly" ? "alert" : "exit";
 }
+
+/** After the voice call: optional WhatsApp; skipping scores the call (if answered) or moves to the email & app alert. */
+export function afterVoice(answered: boolean, sendWhatsApp: boolean): "bitly" | "score" | "alert" {
+  if (sendWhatsApp) return "bitly";
+  return answered ? "score" : "alert";
+}
