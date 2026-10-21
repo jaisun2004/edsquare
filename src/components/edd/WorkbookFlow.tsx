@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Bell, Loader2, MessageCircle, Phone, PhoneOff, Play, RotateCcw, ShieldAlert, Sparkles } from "lucide-react";
@@ -12,18 +12,19 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cbsProfiles, greeting, questionsFor, workbookAlerts } from "@/data/workbook";
 import { toAttrs } from "@/data/scenarios";
-import { answerPoints, dataChecks, defaultThresholds, stepOutcome, SHEET_STEPS, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
+import { afterVoice, answerPoints, dataChecks, defaultThresholds, stepOutcome, SHEET_STEPS, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
 import { useEDD, type FlowLogEntry } from "@/lib/edd-store";
 import type { CallRecord, QuestionnaireRecord, TimelineEntry } from "@/data/edd";
 import { summariseFlowCase } from "@/lib/rule-ai.functions";
 import { CaseCreatedCard, EngineConsole, FlowLanes, PhoneCall, type StampedEvent } from "@/components/edd/live/LiveFlow";
 import { QuestionnaireWindow } from "@/components/edd/live/QuestionnaireWindow";
 import { caseEvents, intakeEvents, scoreEvents, type FlowEvent } from "@/lib/flow-events";
-import { RealVoicePanel, RealWhatsAppPanel, type ChannelLog } from "@/components/edd/RealChannels";
+import { ContactBox, PHONE_KEY, RealVoicePanel, RealWhatsAppPanel, validPhone, type ChannelLog, type Contact } from "@/components/edd/RealChannels";
+import { normalName, normalisePhone } from "@/lib/voice";
 
 const STEPS = SHEET_STEPS;
-type Phase = "idle" | "checks" | "voice" | "bitly" | "notify" | "human" | "verified" | "done";
-const phaseIdx: Record<Phase, number> = { idle: -1, checks: 0, voice: 1, bitly: 2, notify: 3, human: 5, verified: 6, done: 6 };
+type Phase = "idle" | "checks" | "voice" | "wa_offer" | "bitly" | "notify" | "human" | "verified" | "done";
+const phaseIdx: Record<Phase, number> = { idle: -1, checks: 0, voice: 1, wa_offer: 2, bitly: 2, notify: 3, human: 5, verified: 6, done: 6 };
 
 interface LogLine { step: string; colour: Colour; text: string }
 
@@ -62,6 +63,14 @@ export function WorkbookFlow() {
   const qRef = useRef<QuestionnaireRecord[]>([]);
   const caseRef = useRef<string | undefined>(undefined);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [raw, setRaw] = useState("");
+  const [cname, setCname] = useState("");
+  const [lang, setLang] = useState<Contact["lang"]>("ENGLISH");
+  const [offline, setOffline] = useState(false);
+  const [retryIn, setRetryIn] = useState(0);
+  const [pendingVoice, setPendingVoice] = useState<{ o: ReturnType<typeof stepOutcome>; answers: Record<string, string>; flag: number }>();
+  useEffect(() => setRaw(sessionStorage.getItem(PHONE_KEY) ?? ""), []);
+  useEffect(() => { if (retryIn <= 0) return; const t = setTimeout(() => setRetryIn((r) => r - 1), 1000); return () => clearTimeout(t); }, [retryIn]);
 
   const stamp = (e: FlowEvent): StampedEvent => ({ ...e, at: new Date().toLocaleTimeString("en-IN", { hour12: false }) });
   const play = (list: FlowEvent[], then?: () => void) => {
@@ -78,6 +87,9 @@ export function WorkbookFlow() {
   const qs = questionsFor(script, alert.amount, alert.date, alert.credits.reduce((a, b) => a + b, 0), alert.debits.reduce((a, b) => a + b, 0));
   const flag = responseFlag(qs, answers, profile, alert.type);
   const merchant = isMerchant(profile);
+  useEffect(() => setCname(normalName(alert.holder)), [alert.holder]);
+  const contact: Contact = { phone: normalisePhone(raw), name: cname, lang };
+  const canRun = offline || (validPhone(contact.phone) && cname.trim().length > 0);
   const running = phase !== "idle";
 
   const channelOf = (step: string): TimelineEntry["channel"] => step.includes("Voice") ? "voice" : step.includes("WhatsApp") || step.includes("Email") ? "whatsapp" : step.includes("Data") || step.includes("Check") ? "checks" : step.includes("decision") || step.includes("Exit") || step.includes("Case") ? "decision" : "system";
@@ -118,6 +130,8 @@ export function WorkbookFlow() {
   };
 
   const start = () => {
+    if (!canRun) return;
+    if (raw) sessionStorage.setItem(PHONE_KEY, raw);
     const id = `AL-${alert.type}-${Math.floor(1000 + Math.random() * 9000)}`;
     store.injectAlert(
       { id, source: alert.type === "I4C" ? "External Intelligence" : "Risk Model", account: alert.account, upi: "—", customer: alert.holder, trigger: `${alert.type === "I4C" ? "I4C complaint" : "Model alert"}: ${alert.reason} (Rs ${alert.amount.toLocaleString("en-IN")})`, receivedAt: new Date().toISOString(), preliminarySignal: "H", status: "New" },
@@ -153,10 +167,10 @@ export function WorkbookFlow() {
     if (phase === "voice") {
       const n = attempts + 1;
       setAttempts(n);
-      play([{ from: "engine", to: "voice", label: `Dialling customer, attempt ${n}`, delay: 200, ms: 1800 }, { from: "voice", to: "engine", label: reason ?? "No answer / disconnected", delay: 900, colour: "Amber" }, ...(n >= th.voiceRetries ? [{ from: "engine" as const, to: "whatsapp" as const, label: "Retries exhausted: Step 3 WhatsApp / self-service questionnaire", delay: 500, ms: 640 }] : [])]);
+      play([{ from: "engine", to: "voice", label: `Dialling customer, attempt ${n}`, delay: 200, ms: 1800 }, { from: "voice", to: "engine", label: reason ?? "No answer / disconnected", delay: 900, colour: "Amber" }, ...(n >= th.voiceRetries ? [{ from: "engine" as const, to: "whatsapp" as const, label: "Retries exhausted: offering WhatsApp questionnaire", delay: 500 }] : [])]);
       if (!reason) onCall({ id: `SIM-CALL-${Date.now()}`, attempt: n, number: "simulated", real: false, startedAt: new Date().toISOString(), endedAt: new Date().toISOString(), status: "no answer", outcome: "no_response", transcript: [] });
       add("Step 2 Voice bot", "Amber", `Attempt ${n}/${th.voiceRetries}: ${reason ?? "no response / call disconnected"}.`);
-      if (n >= th.voiceRetries) { setAnswers({}); setPhase("bitly"); }
+      if (n >= th.voiceRetries) { setAnswers({}); setPendingVoice(undefined); setPhase("wa_offer"); } else setRetryIn(10);
     } else if (phase === "bitly") {
       add("Step 3 WhatsApp questionnaire", "Amber", `${reason ?? "No reply to the questionnaire"}. Moving to email & app alert.`);
       play([{ from: "whatsapp", to: "engine", label: "No reply within window", delay: 300, colour: "Amber" }, { from: "engine", to: "source", label: "Step 4: email + mobile app alert sent with questionnaire", delay: 500, ms: 140 }]);
@@ -188,9 +202,26 @@ export function WorkbookFlow() {
     }
     record(entry(name, "Answers scored", scored.map((a) => `${a.answer} (+${a.points})`).join("; ") || "No answers"));
     add(name, o.colour, text);
-    play(scoreEvents(phase === "voice" ? "voice" : "whatsapp", answers, flag, o.colour), () => { if (o.action !== "unblock") ensureCase(`${name} flag ${flag} (${o.colour})`); });
     setAnswering(false);
+    if (phase === "voice") {
+      setPendingVoice({ o, answers, flag });
+      play([{ from: "dm", to: "engine", label: `Voice answers scored: flag ${flag} → ${o.colour}. WhatsApp optional`, delay: 300, colour: o.colour }]);
+      setPhase("wa_offer");
+      return;
+    }
+    finish(phase === "bitly" ? "whatsapp" : "engine", name, o, answers, flag);
+  };
+
+  const finish = (lane: "voice" | "whatsapp" | "engine", name: string, o: ReturnType<typeof stepOutcome>, ans: Record<string, string>, f: number) => {
+    play(scoreEvents(lane, ans, f, o.colour), () => { if (o.action !== "unblock") ensureCase(`${name} flag ${f} (${o.colour})`); });
     if (o.action === "unblock") { setFinal("Unblocked: verified by customer"); setPhase("verified"); } else setPhase("human");
+  };
+
+  const decideWhatsApp = (send: boolean) => {
+    const next = afterVoice(!!pendingVoice, send);
+    if (next === "bitly") { add("Step 3 WhatsApp questionnaire", "Amber", "Presenter chose to send the WhatsApp questionnaire."); setAnswers({}); setPhase("bitly"); play([{ from: "engine", to: "whatsapp", label: "Sending WhatsApp questionnaire", delay: 200, ms: 640 }]); }
+    else if (next === "score") { add("Step 3 WhatsApp questionnaire", "Amber", "WhatsApp skipped; using the voice call result."); finish("voice", "Step 2 Voice bot", pendingVoice!.o, pendingVoice!.answers, pendingVoice!.flag); }
+    else { add("Step 3 WhatsApp questionnaire", "Amber", "WhatsApp skipped. Moving to email & app alert."); setAnswers({}); setPhase("notify"); play([{ from: "engine", to: "source", label: "Step 4: email + mobile app alert sent with questionnaire", delay: 300, ms: 140 }]); }
   };
 
   const realLog = (step: string) => (l: ChannelLog) => {
@@ -224,11 +255,24 @@ export function WorkbookFlow() {
     triageRef.current = undefined;
     pendingRef.current = []; callsRef.current = []; qRef.current = []; caseRef.current = undefined;
     timers.current.forEach(clearTimeout); timers.current = []; setEvents([]); setBusy(false);
-    setPhase("idle"); setCaseId(undefined); setChecks([]); setAttempts(0); setAnswering(false); setAnswers({}); setLog([]); setSummary(undefined); setFinal(undefined);
+    setRetryIn(0); setPendingVoice(undefined); setPhase("idle"); setCaseId(undefined); setChecks([]); setAttempts(0); setAnswering(false); setAnswers({}); setLog([]); setSummary(undefined); setFinal(undefined);
   };
 
   const idx = phaseIdx[phase];
   const engaging = phase === "voice" || phase === "bitly" || phase === "notify";
+  const nextText: Record<Phase, string> = {
+    idle: canRun ? "Press Run to send the alert into the engine." : "Enter the customer's mobile number, then press Run.",
+    checks: "Engine is checking Negative DB and Core Banking…",
+    voice: answering ? "Check the answers read from the call, then confirm." : retryIn > 0 ? `No answer. Calling again in ${retryIn}s.` : "Real AI voice call in progress. The customer answers on their phone.",
+    wa_offer: "Optional: send the WhatsApp questionnaire, or skip.",
+    bitly: "Waiting for the customer to fill the WhatsApp form.",
+    notify: "Email & mobile app alert sent. Record whether the customer responded.",
+    human: "A reviewer decides: keep blocked or unblock.",
+    verified: "Done. The customer was verified and the freeze was lifted.",
+    done: "Done. Decision recorded on the case.",
+  };
+  const lastCall = callsRef.current.filter((c) => c.outcome === "answered").at(-1);
+  const pathText = `Call ${lastCall ? "answered" : callsRef.current.length ? "not answered" : "not placed"} · WhatsApp ${qRef.current.length ? (qRef.current.some((q) => q.outcome === "submitted") ? "answered" : "sent, no reply") : "not sent"}${caseId ? ` · Case ${caseId}` : " · No case"}`;
 
   const transcript = [
     ...greeting.map((g) => ({ who: "bot" as const, text: g.replace("{name}", alert.holder).replace("{last4}", alert.account.slice(-4)) })),
@@ -241,8 +285,10 @@ export function WorkbookFlow() {
         <span className="text-xs text-muted-foreground">Speed</span>
         {[1, 2].map((s) => <Button key={s} size="sm" variant={speed === s ? "default" : "outline"} className="h-7" onClick={() => setSpeed(s)}>{s}x</Button>)}
         <div className="ml-4 flex items-center gap-2 text-xs"><Switch checked={presenter} onCheckedChange={setPresenter} />Presenter mode</div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground"><Switch checked={offline} onCheckedChange={setOffline} disabled={running} />Offline demo</div>
+        {presenter && !running && <ContactBox compact raw={raw} setRaw={setRaw} name={cname} setName={setCname} lang={lang} setLang={setLang} />}
         {busy && <span className="flex items-center gap-1 text-xs text-primary"><Loader2 className="h-3 w-3 animate-spin" />Engine running…</span>}
-        {presenter && (!running ? <Button size="sm" className="ml-auto" onClick={start}><Play className="mr-2 h-4 w-4" />Run {alert.label}</Button> : <Button size="sm" variant="outline" className="ml-auto" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />New run</Button>)}
+        {presenter && (!running ? <Button size="sm" className="ml-auto" onClick={start} disabled={!canRun}><Play className="mr-2 h-4 w-4" />Run {alert.label}</Button> : <Button size="sm" variant="outline" className="ml-auto" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />New run</Button>)}
       </div>
       <FlowLanes events={events} live={busy} />
       {caseId && events.some((e) => e.to === "cases") && <CaseCreatedCard key={caseId} caseId={caseId} account={alert.account} risk={profile.risk === "H" || alert.type === "I4C" ? "High" : "Medium"} queue={alert.type === "I4C" ? "Investigator queue" : "Analyst queue"} />}
@@ -253,6 +299,7 @@ export function WorkbookFlow() {
               {i + 1}. {s}
             </div>
           ))}
+          <p className="basis-full pt-1 text-sm"><b>Next:</b> {nextText[phase]}</p>
         </CardContent>
       </Card>
 
@@ -276,7 +323,8 @@ export function WorkbookFlow() {
               </div>
               <div className="flex items-center justify-between"><span>Negative Database hit</span><Switch checked={negbase} onCheckedChange={setNegbase} disabled={running} /></div>
               <p className="-mt-2 text-xs text-muted-foreground">Pretend this account is already on the Negative Database. Step 1 fails immediately (Red).</p>
-              {!running ? <Button className="w-full" onClick={start}><Play className="mr-2 h-4 w-4" />Run flow</Button> : <Button className="w-full" variant="outline" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />New run</Button>}
+              <ContactBox raw={raw} setRaw={setRaw} name={cname} setName={setCname} lang={lang} setLang={setLang} disabled={running} />
+              {!running ? <Button className="w-full" onClick={start} disabled={!canRun}><Play className="mr-2 h-4 w-4" />Run flow</Button> : <Button className="w-full" variant="outline" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />New run</Button>}
             </CardContent>
           </Card>
           <Card>
@@ -325,8 +373,15 @@ export function WorkbookFlow() {
                 {phase === "voice" ? `Step 2 · Voice bot (attempt ${attempts + 1} of ${th.voiceRetries})` : phase === "bitly" ? "Step 3 · WhatsApp / self-service questionnaire" : "Step 4 · Email & mobile app alert (simulated)"}
                 <Badge variant="outline">{script}</Badge>
               </p>
-              {phase === "voice" && !answering && <RealVoicePanel key={`v-${alertId}`} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 2 Voice bot")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} onCall={onCall} />}
-              {phase === "bitly" && !answering && <RealWhatsAppPanel key={`w-${alertId}`} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 3 WhatsApp questionnaire")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} onQuestionnaire={onQuestionnaire} />}
+              {phase === "voice" && !answering && retryIn > 0 && (
+                <div className="flex items-center justify-between gap-2 rounded-md border p-3 text-sm">
+                  <span>No answer on attempt {attempts}/{th.voiceRetries}. Calling again in <b>{retryIn}s</b>.</span>
+                  <span className="flex items-center gap-3"><Button size="sm" onClick={() => setRetryIn(0)}>Retry now</Button>
+                  <button className="text-xs text-muted-foreground underline" onClick={() => { setRetryIn(0); add("Step 2 Voice bot", "Amber", "Presenter stopped calling."); setPhase("wa_offer"); }}>Stop calling</button></span>
+                </div>
+              )}
+              {phase === "voice" && !answering && retryIn === 0 && !offline && <RealVoicePanel key={`v-${alertId}-${attempts}`} contact={contact} attempt={attempts + 1} retries={th.voiceRetries} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 2 Voice bot")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} onCall={onCall} />}
+              {phase === "bitly" && !answering && !offline && <RealWhatsAppPanel key={`w-${alertId}`} contact={contact} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 3 WhatsApp questionnaire")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} onQuestionnaire={onQuestionnaire} />}
               {phase === "bitly" ? (
                 <QuestionnaireWindow amount={alert.amount} last4={alert.account.slice(-4)} qs={qs} answers={answers} started={answering} busy={busy} flag={flag} colour={flagOutcome(flag, merchant, th)}
                   points={(q, a) => answerPoints(q, a, profile, alert.type)}
@@ -337,13 +392,14 @@ export function WorkbookFlow() {
               {phase === "voice" ? <PhoneCall attempt={attempts + 1} retries={th.voiceRetries} connected={answering} transcript={transcript} /> : <div />}
               <div className="space-y-3">
 
-              {!answering ? (
+              {!answering ? ((offline || phase === "notify") &&
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" disabled={busy} onClick={() => { setAnswering(true); play(phase === "voice" ? [{ from: "engine", to: "voice", label: "Dialling customer (simulated)", delay: 100, ms: 1800 }, { from: "voice", to: "engine", label: "Call connected, running script", delay: 700, colour: "Green" }] : [{ from: "source", to: "engine", label: "Customer opened questionnaire from email / app", delay: 200, colour: "Green" }]); }}>Customer responds (simulated)</Button>
                   <Button size="sm" variant="outline" onClick={() => noResponse()}><PhoneOff className="mr-2 h-4 w-4" />No response</Button>
                 </div>
               ) : (
                 <div className="space-y-3">
+                  {phase === "voice" && !offline && <p className="text-xs text-muted-foreground">Answers read from the call. Correct any that were misheard, then confirm.</p>}
                   {qs.map((q) => (
                     <div key={q.id} className="space-y-1">
                       <p className="text-xs">{q.text}</p>
@@ -356,7 +412,7 @@ export function WorkbookFlow() {
                   ))}
                   <div className="flex items-center justify-between rounded-md border p-2 text-sm">
                     <span>Response flag: <b>{flag}</b> → <Badge variant="outline" className={colourCls[flagOutcome(flag, merchant, th)]}>{flagOutcome(flag, merchant, th)}</Badge></span>
-                    <Button size="sm" disabled={Object.keys(answers).length < qs.length} onClick={submitAnswers}>Submit answers</Button>
+                    <Button size="sm" disabled={Object.keys(answers).length < qs.length} onClick={submitAnswers}>{phase === "voice" ? "Confirm answers" : "Submit answers"}</Button>
                   </div>
                   <p className="text-xs text-muted-foreground">Points are added when answers don't match Core Banking (employment, pin code, unknown sender, payment reason vs account type).</p>
                 </div>
@@ -364,6 +420,25 @@ export function WorkbookFlow() {
               </div>
               </div>
               )}
+            </CardContent></Card>
+          )}
+
+          {phase === "wa_offer" && (
+            <Card className="border-primary"><CardContent className="space-y-3 py-4">
+              <p className="flex items-center gap-2 text-sm font-semibold"><MessageCircle className="h-4 w-4" />Send WhatsApp questionnaire to the customer?</p>
+              <p className="text-xs text-muted-foreground">{pendingVoice ? `The call was answered (flag ${pendingVoice.flag}, ${pendingVoice.o.colour}). WhatsApp is an optional extra check; skipping uses the call result.` : "The customer did not answer the calls. The scenario sheet recommends WhatsApp next; skipping moves to the email & app alert."}</p>
+              {!offline && <p className="text-xs">Will send to {contact.phone ? `+${contact.phone}` : "—"}</p>}
+              <div className="flex items-center gap-3">
+                <Button size="sm" onClick={() => decideWhatsApp(true)}><MessageCircle className="mr-2 h-4 w-4" />Send WhatsApp</Button>
+                <Button size="sm" variant="outline" onClick={() => decideWhatsApp(false)}>Skip</Button>
+              </div>
+            </CardContent></Card>
+          )}
+
+          {(phase === "verified" || phase === "human" || phase === "done") && (
+            <Card><CardContent className="space-y-2 py-3 text-xs">
+              <p><b>Path taken:</b> {pathText}</p>
+              {lastCall?.recordingUrl && <audio controls src={lastCall.recordingUrl} className="h-8 w-full" />}
             </CardContent></Card>
           )}
 
