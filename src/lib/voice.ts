@@ -12,6 +12,18 @@ export interface VoiceDispatchInput {
   };
 }
 
+/** Adds the default country code when missing: "9081657821", "09081657821", "+91 90816 57821" -> "919081657821". */
+export function normalisePhone(raw: string, defaultCc = "91"): string {
+  let d = (raw ?? "").replace(/\D/g, "");
+  if (d.startsWith("00")) d = d.slice(2);
+  if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
+  if (d.length === 10) d = defaultCc + d;
+  return d;
+}
+
+/** "919081657821" -> "+91 90816 57821" for display. */
+export const prettyPhone = (d: string) => (d.length === 12 && d.startsWith("91") ? `+91 ${d.slice(2, 7)} ${d.slice(7)}` : `+${d}`);
+
 /** "RAKESH roshon" -> "Rakesh Roshon" (partner requires normal capitals). */
 export const normalName = (s: string) => s.trim().toLowerCase().replace(/\b\p{L}/gu, (c) => c.toUpperCase());
 
