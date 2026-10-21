@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Bell, Loader2, MessageCircle, Phone, PhoneOff, Play, RotateCcw, ShieldAlert, Sparkles } from "lucide-react";
@@ -31,6 +31,8 @@ const colourCls: Record<Colour, string> = {
 
 export function WorkbookFlow() {
   const store = useEDD();
+  const storeRef = useRef(store);
+  storeRef.current = store;
   const summarise = useServerFn(summariseFlowCase);
   const [alertId, setAlertId] = useState(workbookAlerts[0]!.id);
   const [negbase, setNegbase] = useState(false);
@@ -71,8 +73,8 @@ export function WorkbookFlow() {
   };
 
   const finishStart = (id: string) => {
-    const triage = store.triageAlert(id);
-    const cid = store.applyTriage(triage, "Further Investigation", `${alert.type} flow: account kept blocked pending EDD`);
+    const triage = storeRef.current.triageAlert(id);
+    const cid = storeRef.current.applyTriage(triage, "Further Investigation", `${alert.type} flow: account kept blocked pending EDD`);
     setCaseId(cid);
     const r = dataChecks(alert, profile, negbase, th);
     setChecks(r.checks);
