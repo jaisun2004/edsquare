@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { validateAccountBlocked, type AccountBlockedInput } from "@/lib/whatsapp";
+import { parsePartnerReply, validateAccountBlocked, type AccountBlockedInput } from "@/lib/whatsapp";
 
 const DEFAULT_URL = "https://buddy.pharynxai.in/waba_chargeback/send-account-blocked";
 
@@ -11,13 +11,15 @@ export const sendAccountBlockedWhatsApp = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const url = process.env["WHATSAPP_PARTNER_URL"] || DEFAULT_URL;
+    const started = Date.now();
     try {
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       const body = (await res.text()).slice(0, 1000);
-      if (!res.ok) console.error(`WhatsApp partner send failed [${res.status}]: ${body}`);
-      return { ok: res.ok, status: res.status, body };
+      const r = parsePartnerReply(res.ok, body);
+      if (!r.sent) console.error(`WhatsApp template send not accepted [${res.status}]: ${body}`);
+      return { ok: r.sent, status: res.status, body, messageId: r.messageId, error: r.error, ms: Date.now() - started };
     } catch (e) {
-      return { ok: false, status: 0, body: e instanceof Error ? e.message : "Could not reach the WhatsApp service." };
+      return { ok: false, status: 0, body: e instanceof Error ? e.message : "Could not reach the WhatsApp service.", ms: Date.now() - started };
     }
   });
 
@@ -35,11 +37,9 @@ export const sendWhatsAppText = createServerFn({ method: "POST" })
     try {
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       const body = (await res.text()).slice(0, 1000);
-      if (!res.ok) console.error(`WhatsApp send-text failed [${res.status}]: ${body}`);
-      let messageId: string | undefined;
-      let sent = res.ok;
-      try { const j = JSON.parse(body); messageId = j?.whatsapp_response?.messages?.[0]?.id; if (j?.status && j.status !== "sent") sent = false; } catch { /* not json */ }
-      return { ok: sent, status: res.status, body, messageId, ms: Date.now() - started };
+      const r = parsePartnerReply(res.ok, body);
+      if (!r.sent) console.error(`WhatsApp send-text not accepted [${res.status}]: ${body}`);
+      return { ok: r.sent, status: res.status, body, messageId: r.messageId, error: r.error, ms: Date.now() - started };
     } catch (e) {
       return { ok: false, status: 0, body: e instanceof Error ? e.message : "Could not reach the WhatsApp service.", ms: Date.now() - started };
     }

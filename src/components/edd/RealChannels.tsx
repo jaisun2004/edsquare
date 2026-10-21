@@ -12,9 +12,9 @@ import { callState, normalName, normalisePhone, prettyPhone } from "@/lib/voice"
 import type { CallRecord, QuestionnaireRecord } from "@/data/edd";
 import { dispatchVoiceCall, getVoiceCall, type VoiceCallView } from "@/lib/voice.functions";
 import { extractCallAnswers } from "@/lib/rule-ai.functions";
-import { sendWhatsAppText } from "@/lib/whatsapp.functions";
+import { sendAccountBlockedWhatsApp, sendWhatsAppText } from "@/lib/whatsapp.functions";
 import { createQuestionnaire, getQuestionnaire } from "@/lib/questionnaire.functions";
-import { maskNumber } from "@/lib/whatsapp";
+import { accountDigits, maskNumber, SUPPORT_NUMBER, templateLang } from "@/lib/whatsapp";
 
 export const PHONE_KEY = "edsquare.demo.phone";
 const BANK = "Airtel Payments Bank";
@@ -164,6 +164,9 @@ function questionnaireOrigin() {
 export function RealWhatsAppPanel(p: Common) {
   const create = useServerFn(createQuestionnaire);
   const send = useServerFn(sendWhatsAppText);
+  const sendTemplate = useServerFn(sendAccountBlockedWhatsApp);
+  const [tpl, setTpl] = useState<{ ok: boolean; text: string }>();
+  const [txt, setTxt] = useState<{ ok: boolean; text: string }>();
   const read = useServerFn(getQuestionnaire);
   const phone = p.contact.phone;
   const [used, setUsed] = useState(0);
@@ -188,12 +191,19 @@ export function RealWhatsAppPanel(p: Common) {
       const { token } = await create({ data: { header: { bank: BANK, amount: p.alert.amount, last4: p.alert.account.slice(-4), name: normalName(p.alert.holder) }, questions: p.qs.map(toCustomer) } });
       const url = `${questionnaireOrigin()}/q/${token}`;
       setLink(url);
+      // 1) Approved template: reaches any customer, even without a recent chat.
+      const t = await sendTemplate({ data: { to: phone, account_number: accountDigits(p.alert.account), support_number: SUPPORT_NUMBER, language: templateLang(p.contact.lang) } });
+      const tText = t.ok ? `Template sent${t.messageId ? " (WhatsApp accepted it)" : ""}` : `Template not accepted (${t.status || "no connection"}): ${t.error ?? t.body}`;
+      setTpl({ ok: t.ok, text: tText });
+      p.onLog({ ok: t.ok, ms: t.ms, text: `WhatsApp "account blocked" template to ${maskNumber(phone)}: ${tText}.` });
+      // 2) Questionnaire link as free text (delivered only inside the 24-hour chat window).
       const message = `Dear ${normalName(p.alert.holder)}, ${BANK} noticed a credit of Rs ${inr(p.alert.amount)} on your A/c ending ${p.alert.account.slice(-4)}. Please confirm a few details here: ${url}`;
       const r = await send({ data: { to: phone, message } });
+      setTxt({ ok: r.ok, text: r.ok ? "Link sent (arrives only if the customer messaged the bank in the last 24 hours or replies to the template)" : `Link not accepted (${r.status || "no connection"}): ${r.error ?? r.body}` });
       p.onLog({ ok: r.ok, ms: r.ms, text: r.ok ? `WhatsApp questionnaire sent to ${maskNumber(phone)}${r.messageId ? " (message accepted)" : ""}.` : `WhatsApp send failed (${r.status || "no connection"}): ${r.body}` });
       const sentAt = new Date().toISOString();
       const qrec = (outcome: QuestionnaireRecord["outcome"], submittedAt?: string): QuestionnaireRecord => ({ id: `Q-${token.slice(0, 8)}`, number: maskNumber(phone), real: true, sentAt, link: url, outcome, submittedAt });
-      if (!r.ok) { setErr(r.body); setStage("idle"); p.onQuestionnaire?.(qrec("failed")); return; }
+      if (!r.ok && !t.ok) { setErr(r.error ?? r.body); setStage("idle"); p.onQuestionnaire?.(qrec("failed")); return; }
       p.onQuestionnaire?.(qrec("no_response"));
       setStage("waiting");
       clearInterval(timer.current);
@@ -222,13 +232,15 @@ export function RealWhatsAppPanel(p: Common) {
         </p>
         <span className="text-xs text-muted-foreground">{prettyPhone(phone)} · {used}/{MAX} sends</span>
       </div>
+      {tpl && <p className={`text-xs ${tpl.ok ? "" : "text-destructive"}`}><b>1. Template:</b> {tpl.text}</p>}
+      {txt && <p className={`text-xs ${txt.ok ? "" : "text-destructive"}`}><b>2. Questionnaire link:</b> {txt.text}</p>}
       {link && <p className="break-all text-xs">Link: <a href={link} target="_blank" rel="noreferrer" className="text-primary underline">{link}</a></p>}
       {err && <p className="text-xs text-destructive">{err}</p>}
       <div className="flex items-center gap-3">
         {stage === "idle" && used < MAX && <Button size="sm" onClick={() => void go()}>Send again</Button>}
         {(stage === "waiting" || stage === "idle") && <button className="text-xs text-muted-foreground underline" onClick={() => { clearInterval(timer.current); setStage("done"); p.onNoResponse("No reply to WhatsApp questionnaire"); }}>Stop waiting: no response</button>}
       </div>
-      <p className="text-[11px] text-muted-foreground">WhatsApp only delivers free text if the test phone messaged the business number in the last 24 hours.</p>
+      <p className="text-[11px] text-muted-foreground">The template always arrives. WhatsApp delivers the link only if the customer messaged the bank's number in the last 24 hours. Ask them to reply "Hi" to the template, then press Send again.</p>
     </div>
   );
 }
