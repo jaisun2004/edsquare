@@ -149,6 +149,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?:
   };
 
   const start = () => {
+    void storeRef.current.reserveCaseId();
     if (!canRun) return;
     if (raw) sessionStorage.setItem(PHONE_KEY, raw);
     runIdRef.current = `RUN-${Date.now().toString(36)}`;
@@ -370,7 +371,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?:
               <div className="flex items-center justify-between"><span>Negative Database hit</span><Switch checked={negbase} onCheckedChange={setNegbase} disabled={running} /></div>
               <p className="-mt-2 text-xs text-muted-foreground">Pretend this account is already on the Negative Database. Step 1 fails immediately (Red).</p>
               <ContactBox raw={raw} setRaw={setRaw} name={cname} setName={setCname} lang={lang} setLang={setLang} disabled={running} />
-              {!running ? <Button className="w-full" onClick={start} disabled={!canRun}><Play className="mr-2 h-4 w-4" />Run flow</Button> : <Button className="w-full" variant="outline" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />New run</Button>}
+              {!running ? <Button className="w-full" onClick={start} disabled={!canRun}><Play className="mr-2 h-4 w-4" />{store.loaded ? "Run flow" : "Loading demo…"}</Button> : <Button className="w-full" variant="outline" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />New run</Button>}
             </CardContent>
           </Card>
           <Card>
