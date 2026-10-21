@@ -98,7 +98,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?:
   const merchant = isMerchant(profile);
   useEffect(() => setCname(normalName(alert.holder)), [alert.holder]);
   const contact: Contact = { phone: normalisePhone(raw), name: cname, lang };
-  const canRun = offline || (validPhone(contact.phone) && cname.trim().length > 0);
+  const canRun = store.loaded && (offline || (validPhone(contact.phone) && cname.trim().length > 0));
   useEffect(() => {
     if (!autoGo || phase !== "idle" || !canRun) return;
     setAutoGo(false);

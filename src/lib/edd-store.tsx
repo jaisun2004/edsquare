@@ -1,7 +1,8 @@
 import type { CallRecord, QuestionnaireRecord } from "@/data/edd";
 import type { DemoRun } from "@/lib/demo-runs";
 import { buildSamples } from "@/data/sample-scenarios";
-import { clearDemoRecords, listDemoRecords, saveDemoRecords, type DemoRecord } from "@/lib/demo-records.functions";
+import { clearDemoRecords, listDemoRecords, reserveCaseId as reserveCaseIdFn, saveDemoRecords, type DemoRecord } from "@/lib/demo-records.functions";
+import { renumberCase, resolveCaseId } from "@/lib/case-renumber";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type Context, type ReactNode } from "react";
 import {
   alerts as seedAlerts,
@@ -102,6 +103,12 @@ interface StoreValue {
   demoRuns: DemoRun[];
   recordRun: (run: DemoRun) => void;
   attachFlow: (caseId: string, f: { events?: FlowLogEntry[]; calls?: CallRecord[]; questionnaires?: QuestionnaireRecord[] }) => void;
+  /** True once the shared demo has loaded; runs must wait for it. */
+  loaded: boolean;
+  /** Reserves the next shared case number for the next case this tab creates. */
+  reserveCaseId: () => Promise<void>;
+  /** Current number of a case that may have been re-numbered after a clash. */
+  currentCaseId: (id: string) => string;
 }
 
 const SAMPLES = buildSamples();
@@ -135,6 +142,16 @@ export function EDDProvider({ children }: { children: ReactNode }) {
   const [demoRuns, setDemoRuns] = useState<DemoRun[]>(() => clone(SAMPLES.runs));
   const [loaded, setLoaded] = useState(false);
   const sentRef = useRef<Map<string, string>>(new Map());
+  const reservedRef = useRef<string | undefined>(undefined);
+  const renamesRef = useRef<Record<string, string>>({});
+  const casesRef = useRef<EDDCase[]>([]);
+  casesRef.current = cases;
+  const floorOf = (ids: string[]) => Number(/^CASE-(\d+)$/.exec(nextCaseId(ids))?.[1] ?? 2100) - 1;
+  const takeFreshId = async (): Promise<string> => {
+    const known = [...casesRef.current.map((c) => c.id), ...issuedCaseIds];
+    try { const { id } = await reserveCaseIdFn({ data: { floor: floorOf(known) } }); if (!known.includes(id)) return id; } catch { /* fall back */ }
+    return nextCaseId(known);
+  };
 
   // Demo runs, the cases/alerts they created and decisions are kept in the shared demo database,
   // so they survive refreshes, new tabs and the published app.
@@ -168,7 +185,18 @@ export function EDDProvider({ children }: { children: ReactNode }) {
     if (!changed.length) return;
     const t = setTimeout(() => {
       for (const i of changed) sentRef.current.set(`${i.kind}:${i.id}`, JSON.stringify(i.data));
-      void saveDemoRecords({ data: { items: changed } }).catch(() => { for (const i of changed) sentRef.current.delete(`${i.kind}:${i.id}`); });
+      void saveDemoRecords({ data: { items: changed } }).then(async (res) => {
+        for (const old of res.clashes ?? []) {
+          const fresh = await takeFreshId();
+          issuedCaseIds.push(fresh);
+          renamesRef.current[old] = fresh;
+          sentRef.current.delete(`case:${old}`);
+          setCases((c) => renumberCase({ cases: c, alerts: [], runs: [], enforcement: [] }, old, fresh).cases);
+          setAlerts((a) => renumberCase({ cases: [], alerts: a, runs: [], enforcement: [] }, old, fresh).alerts);
+          setDemoRuns((r) => renumberCase({ cases: [], alerts: [], runs: r, enforcement: [] }, old, fresh).runs);
+          setEnforcement((e) => renumberCase({ cases: [], alerts: [], runs: [], enforcement: e }, old, fresh).enforcement);
+        }
+      }).catch(() => { for (const i of changed) sentRef.current.delete(`${i.kind}:${i.id}`); });
     }, 600);
     return () => clearTimeout(t);
   }, [loaded, demoRuns, cases, alerts, enforcement]);
@@ -240,7 +268,10 @@ export function EDDProvider({ children }: { children: ReactNode }) {
       applyTriage: (result, outcome, reason, extra) => {
         const alert = alerts.find((a) => a.id === result.alertId);
         if (!alert) throw new Error(`Alert ${result.alertId} not found`);
-        const caseId = nextCaseId([...cases.map((c) => c.id), ...issuedCaseIds]);
+        const known = [...cases.map((c) => c.id), ...issuedCaseIds];
+        const reserved = reservedRef.current;
+        reservedRef.current = undefined;
+        const caseId = reserved && !known.includes(reserved) ? reserved : nextCaseId(known);
         issuedCaseIds.push(caseId);
         const nowIso = new Date().toISOString();
         const newCase: EDDCase = {
@@ -540,7 +571,11 @@ export function EDDProvider({ children }: { children: ReactNode }) {
       demoRuns,
       recordRun: (run) => setDemoRuns((prev) => [run, ...prev.filter((r) => r.id !== run.id)]),
 
-      attachFlow: (caseId, f) => {
+      loaded,
+      reserveCaseId: async () => { reservedRef.current = await takeFreshId(); },
+      currentCaseId: (id) => resolveCaseId(renamesRef.current, id),
+      attachFlow: (rawId, f) => {
+        const caseId = resolveCaseId(renamesRef.current, rawId);
         const evs = (f.events ?? []).map((e) => ({ id: uid("T"), at: e.at, actor: e.actor, action: e.action, detail: e.detail, channel: e.channel }) satisfies TimelineEntry);
         setCases((prev) => prev.map((c) => {
           if (c.id !== caseId) return c;
@@ -569,7 +604,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
         setAudit(clone(seedAudit));
       },
     };
-  }, [role, actor, alerts, cases, rules, ruleSets, ruleGroups, sources, attributes, policyVersions, negbase, enforcement, audit, extraAttrs, demoRuns]);
+  }, [loaded, role, actor, alerts, cases, rules, ruleSets, ruleGroups, sources, attributes, policyVersions, negbase, enforcement, audit, extraAttrs, demoRuns]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
