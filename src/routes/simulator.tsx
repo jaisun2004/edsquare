@@ -16,7 +16,7 @@ export const Route = createFileRoute("/simulator")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (s: Record<string, unknown>): { alert?: string } => (typeof s.alert === "string" ? { alert: s.alert } : {}),
+  validateSearch: (s: Record<string, unknown>): { alert?: string } => (typeof s["alert"] === "string" ? { alert: s["alert"] } : {}),
   component: Simulator,
 });
 
