@@ -23,7 +23,7 @@ export interface FlowEvent {
 
 const inr = (n: number) => `Rs ${n.toLocaleString("en-IN")}`;
 
-export function intakeEvents(alert: WorkbookAlert, profile: CbsProfile, negbaseHit: boolean, checks: Check[], outcome: Colour, caseId: string): FlowEvent[] {
+export function intakeEvents(alert: WorkbookAlert, profile: CbsProfile, negbaseHit: boolean, checks: Check[], outcome: Colour): FlowEvent[] {
   const src = alert.type === "I4C" ? "I4C portal" : "Risk model";
   const ev: FlowEvent[] = [
     { from: "source", to: "engine", label: `${src} alert received: ${alert.reason} (${inr(alert.amount)})`, delay: 300, ms: 38, payload: { type: alert.type, account: alert.account, amount: alert.amount, date: alert.date } },
@@ -36,8 +36,22 @@ export function intakeEvents(alert: WorkbookAlert, profile: CbsProfile, negbaseH
   ];
   for (const c of checks) ev.push({ from: "dm", to: "dm", label: `${c.fired ? "Fired" : "Pass"}: ${c.label}`, delay: 500, colour: c.fired ? "Red" : "Green", payload: { detail: c.detail } });
   ev.push({ from: "dm", to: "engine", label: `Step 1 outcome: ${outcome}`, delay: 600, colour: outcome });
-  ev.push({ from: "engine", to: "cases", label: `Case ${caseId} created`, delay: 600, ms: 90, payload: { caseId, account: alert.account } });
   return ev;
 }
 
 export const totalDelay = (ev: FlowEvent[]) => ev.reduce((a, e) => a + e.delay, 0);
+
+export const caseEvents = (caseId: string, account: string): FlowEvent[] => [
+  { from: "engine", to: "cases", label: `Case ${caseId} created`, delay: 400, ms: 90, payload: { caseId, account } },
+];
+
+export function whatsappEvents(answers: Record<string, string>, flag: number, colour: Colour, clears: boolean): FlowEvent[] {
+  return [
+    { from: "whatsapp", to: "engine", label: `Customer answered ${Object.keys(answers).length} questions on WhatsApp`, delay: 200, payload: answers },
+    { from: "engine", to: "dm", label: "Scoring answers against Core Banking", delay: 500, ms: 58 },
+    { from: "dm", to: "engine", label: `Response flag ${flag} → ${colour}`, delay: 600, colour },
+    clears
+      ? { from: "engine", to: "enforce", label: "Transaction verified by customer, freeze lifted, no case", delay: 500, ms: 160, colour: "Green" }
+      : { from: "engine", to: "voice", label: "Not cleared, starting voice bot", delay: 500 },
+  ];
+}
