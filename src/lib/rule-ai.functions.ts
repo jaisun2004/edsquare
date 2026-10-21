@@ -150,3 +150,16 @@ Remember: AI/ML prioritises, bank experts decide — never claim a final decisio
     const answer = await callGateway(instructions, JSON.stringify({ question: data.question, context: JSON.parse(data.context) }));
     return { answer: answer.trim() };
   });
+
+export const summariseFlowCase = createServerFn({ method: "POST" })
+  .inputValidator((input: { context: string }) => {
+    if (!input.context || input.context.length > 20000) throw new Error("Case context missing or too large.");
+    return input;
+  })
+  .handler(async ({ data }) => {
+    const instructions = `You write a short case summary for a bank EDD reviewer deciding whether to keep a suspected mule account blocked or unblock it.
+Use ONLY the JSON context. Cover: alert, data check results with values, customer responses and mismatches against core banking, response flag and step outcomes.
+Max 120 words, plain bullets. End with "Suggested: Block" or "Suggested: Unblock" plus one reason. Never state that a final decision has been made.`;
+    const summary = await callGateway(instructions, data.context);
+    return { summary: summary.trim() };
+  });

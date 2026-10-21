@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Circle, Loader2, Play, RotateCcw, StepForward } from "lucide-react";
 
@@ -15,19 +15,6 @@ import { scenarios, toAttrs, type TxnInput } from "@/data/scenarios";
 import { useEDD, type TriageResult } from "@/lib/edd-store";
 import type { Recommendation } from "@/data/edd";
 
-export const Route = createFileRoute("/simulator")({
-  head: () => ({
-    meta: [
-      { title: "Demo Simulator — EDSquare" },
-      { name: "description", content: "Trigger a sample transaction and watch it flow through EDSquare triage, routing, engagement and enforcement." },
-      { property: "og:title", content: "Demo Simulator — EDSquare" },
-      { property: "og:description", content: "Trigger a sample transaction and follow it end-to-end through EDSquare." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: Simulator,
-});
 
 const STAGES = ["Transaction", "Alert raised", "Data enrichment", "Decision Manager", "Triage outcome", "Case routing", "Engagement", "Decision", "Enforcement"] as const;
 
@@ -41,7 +28,7 @@ interface Run {
   cleared?: boolean;
 }
 
-function Simulator() {
+export function ClassicSimulator() {
   const store = useEDD();
   const [scenarioId, setScenarioId] = useState("mule");
   const [input, setInput] = useState<TxnInput>(scenarios[0]!.input);
