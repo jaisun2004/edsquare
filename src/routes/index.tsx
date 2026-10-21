@@ -173,6 +173,7 @@ function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      <div className="mt-6"><LatestDemoRuns /></div>
     </div>
   );
 }
