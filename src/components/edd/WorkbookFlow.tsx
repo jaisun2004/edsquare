@@ -334,7 +334,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?:
         <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
           {fromAlert && <Link to="/alerts" search={{ open: fromAlert }} className="text-primary underline">Back to alert {fromAlert}</Link>}
           {fromAlert && offline && running && <span className="text-muted-foreground">Offline demo (no saved number). Add a number for a real call: press New run, enter it, then Run.</span>}
-          {caseId && <span className="ml-auto flex items-center gap-2">Case created: <Button asChild size="sm"><Link to="/cases/$caseId" params={{ caseId }}>Open case {caseId}</Link></Button></span>}
+          {caseId && <span className="ml-auto flex items-center gap-2">Case created: <Button asChild size="sm"><Link to="/cases/$caseId" params={{ caseId: store.currentCaseId(caseId) }}>Open case {store.currentCaseId(caseId)}</Link></Button></span>}
         </div>
       )}
       <FlowLanes events={events} live={busy} />
