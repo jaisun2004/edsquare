@@ -87,6 +87,7 @@ function CaseDetailPage() {
         )}
       </div>
 
+      {(() => { const src = alerts.find((a) => a.caseId === item.id); return src ? <p className="text-sm text-muted-foreground">From alert <Link to="/alerts" search={{ open: src.id }} className="font-medium text-primary underline">{src.id}</Link> · {src.trigger}</p> : null; })()}
       {journey && <JourneyStrip j={journey} />}
 
       <Card className="border-primary/30 bg-primary/5">
