@@ -71,3 +71,9 @@ export function exitOutcome(type: "I4C" | "Model"): { colour: Colour; text: stri
     ? { colour: "Red", text: "No response from customer: continue block and exit. Self-service link sent via WhatsApp, email, SMS and mobile app." }
     : { colour: "Manual", text: "No response from customer: moved to the Manual review queue." };
 }
+
+/** WhatsApp pre-call check: only a Green response clears the customer without creating a case. */
+export function waCheckOutcome(flag: number, merchant: boolean, t: Thresholds = defaultThresholds): { colour: Colour; clears: boolean } {
+  const colour = flagOutcome(flag, merchant, t);
+  return { colour, clears: colour === "Green" };
+}
