@@ -5,6 +5,7 @@ import {
   alerts as seedAlerts,
   audit as seedAudit,
   cases as seedCases,
+  nextCaseId,
   enforcement as seedEnforcement,
   negbase as seedNegbase,
   gradeForScore,
@@ -35,6 +36,8 @@ import { alertAttributes, attributes as seedAttributes, dataSources as seedSourc
 import { availableAttrs, runPolicy, type PolicyResult } from "@/lib/rule-engine";
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+/** Ids handed out this session, so two cases created before a re-render never share one. */
+const issuedCaseIds: string[] = [];
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
 
 export interface FlowLogEntry { at: string; actor: string; action: string; detail: string; channel: TimelineEntry["channel"] }
@@ -79,7 +82,7 @@ interface StoreValue {
   enforcement: EnforcementEntry[];
   audit: AuditEntry[];
   triageAlert: (alertId: string) => TriageResult;
-  applyTriage: (result: TriageResult, outcome: Recommendation, reason?: string) => string;
+  applyTriage: (result: TriageResult, outcome: Recommendation, reason?: string, extra?: { contact?: EDDCase["contact"] }) => string;
   dismissAlert: (alertId: string) => void;
   requestEnrichment: (caseId: string) => void;
   startEngagement: (caseId: string, channel: Channel) => void;
@@ -204,13 +207,16 @@ export function EDDProvider({ children }: { children: ReactNode }) {
         };
       },
 
-      applyTriage: (result, outcome, reason) => {
-        const alert = alerts.find((a) => a.id === result.alertId)!;
-        const caseId = `CASE-${2100 + Math.floor(Math.random() * 800)}`;
+      applyTriage: (result, outcome, reason, extra) => {
+        const alert = alerts.find((a) => a.id === result.alertId);
+        if (!alert) throw new Error(`Alert ${result.alertId} not found`);
+        const caseId = nextCaseId([...cases.map((c) => c.id), ...issuedCaseIds]);
+        issuedCaseIds.push(caseId);
         const nowIso = new Date().toISOString();
         const newCase: EDDCase = {
           id: caseId,
           customer: alert.customer,
+          ...(extra?.contact ? { contact: extra.contact } : {}),
           account: alert.account,
           upi: alert.upi,
           category: "Mule",

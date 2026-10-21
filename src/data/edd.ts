@@ -132,6 +132,8 @@ export interface EDDCase {
   engagement: EngagementAttempt[];
   timeline: TimelineEntry[];
   calls?: CallRecord[] | undefined;
+  /** Person actually contacted in a demo run (name/number entered before Run). */
+  contact?: { name: string; phone: string; lang: string } | undefined;
   questionnaires?: QuestionnaireRecord[] | undefined;
   notes: { id: string; author: string; at: string; text: string }[];
   documents: { id: string; name: string; kind: string; at: string }[];
@@ -455,3 +457,9 @@ export const users = [
 ];
 
 export const STAGES: Stage[] = ["Triaged", "Enrichment", "Engagement", "Human Review", "Decision Pending", "Closed"];
+
+/** Next free case id: one above the highest existing CASE-n, never reusing an id. */
+export function nextCaseId(existing: string[]): string {
+  const max = existing.reduce((m, id) => { const n = Number(/^CASE-(\d+)$/.exec(id)?.[1]); return Number.isFinite(n) && n > m ? n : m; }, 2100);
+  return `CASE-${max + 1}`;
+}
