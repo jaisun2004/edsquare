@@ -74,7 +74,7 @@ export function DemoRunStats() {
 export function DemoRunSummary({ run }: { run: DemoRun }) {
   return (
     <Card className="lg:col-span-2 border-primary/30">
-      <CardHeader><CardTitle className="flex items-center gap-2 text-sm">Demo run summary <Badge variant="secondary">Live demo</Badge> <ColourBadge c={run.colour} /></CardTitle></CardHeader>
+      <CardHeader><CardTitle className="flex items-center gap-2 text-sm">Demo run summary <Badge variant="secondary">{run.sample ? "Sample scenario" : "Live demo"}</Badge> <ColourBadge c={run.colour} /></CardTitle></CardHeader>
       <CardContent className="space-y-2 text-sm">
         <p><span className="text-muted-foreground">Path taken: </span>{path(run)}</p>
         {run.number && <p><span className="text-muted-foreground">Customer number: </span>{run.number}</p>}
