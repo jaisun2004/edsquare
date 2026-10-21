@@ -19,9 +19,9 @@ import { WhatsAppSender } from "@/components/edd/WhatsAppSender";
 import { CaseCreatedCard, EngineConsole, FlowLanes, PhoneCall, PhoneWhatsApp, type StampedEvent } from "@/components/edd/live/LiveFlow";
 import { intakeEvents, type FlowEvent } from "@/lib/flow-events";
 
-const STEPS = ["Data checks", "Voice bot", "WhatsApp questionnaire", "Email & app alert", "Exit / Manual queue", "Human in the loop"];
-type Phase = "idle" | "checks" | "voice" | "bitly" | "notify" | "exit" | "human" | "done";
-const phaseIdx: Record<Phase, number> = { idle: -1, checks: 0, voice: 1, bitly: 2, notify: 3, exit: 4, human: 5, done: 6 };
+const STEPS = ["Data checks", "WhatsApp block notice", "Voice bot", "WhatsApp questionnaire", "Email & app alert", "Exit / Manual queue", "Human in the loop"];
+type Phase = "idle" | "checks" | "notice" | "voice" | "bitly" | "notify" | "exit" | "human" | "done";
+const phaseIdx: Record<Phase, number> = { idle: -1, checks: 0, notice: 1, voice: 2, bitly: 3, notify: 4, exit: 5, human: 6, done: 7 };
 
 interface LogLine { step: string; colour: Colour; text: string }
 
@@ -50,6 +50,7 @@ export function WorkbookFlow() {
   const [summary, setSummary] = useState<string>();
   const [summaryBusy, setSummaryBusy] = useState(false);
   const [final, setFinal] = useState<string>();
+  const [afterNotice, setAfterNotice] = useState<Phase>("voice");
   const [events, setEvents] = useState<StampedEvent[]>([]);
   const [speed, setSpeed] = useState(1);
   const [presenter, setPresenter] = useState(false);
@@ -98,7 +99,8 @@ export function WorkbookFlow() {
       setChecks(r.checks);
       const fired = r.checks.find((c) => c.fired);
       add("Step 1 Data checks", r.outcome, fired ? `${fired.label}: ${fired.detail}. Continue block.` : "No check fired. Move to voice bot.", cid);
-      setPhase(r.outcome === "Amber" ? "voice" : "human");
+      setAfterNotice(r.outcome === "Amber" ? "voice" : "human");
+      setPhase("notice");
     });
   };
 
@@ -111,6 +113,7 @@ export function WorkbookFlow() {
       if (n >= th.voiceRetries) setPhase("bitly");
     } else if (phase === "bitly") {
       add("Step 3 WhatsApp questionnaire", "Amber", `${script} link sent on WhatsApp. No response.`);
+      setWaMsgs((m) => [...m, { who: "bank", text: "We could not reach you by phone. Please answer a few questions: https://bit.ly/edsq-q", ticks: true }]);
       play([{ from: "whatsapp", to: "engine", label: "No reply within window", delay: 300, colour: "Amber" }, { from: "engine", to: "source", label: "Email + app push sent", delay: 600, ms: 140 }]);
       setPhase("notify");
     } else if (phase === "notify") {
@@ -156,6 +159,7 @@ export function WorkbookFlow() {
   };
 
   const reset = () => {
+    setAfterNotice("voice");
     timers.current.forEach(clearTimeout); timers.current = []; setEvents([]); setWaMsgs([]); setBusy(false);
     setPhase("idle"); setCaseId(undefined); setChecks([]); setAttempts(0); setAnswering(false); setAnswers({}); setLog([]); setSummary(undefined); setFinal(undefined);
   };
@@ -209,6 +213,7 @@ export function WorkbookFlow() {
                 {alert.balance !== undefined && <p>Balance: Rs {alert.balance.toLocaleString("en-IN")}</p>}
               </div>
               <div className="flex items-center justify-between"><span>Negative Database hit</span><Switch checked={negbase} onCheckedChange={setNegbase} disabled={running} /></div>
+              <p className="-mt-2 text-xs text-muted-foreground">Pretend this account is already on the Negative Database. Step 1 fails immediately (Red).</p>
               {!running ? <Button className="w-full" onClick={start}><Play className="mr-2 h-4 w-4" />Run flow</Button> : <Button className="w-full" variant="outline" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />New run</Button>}
             </CardContent>
           </Card>
@@ -251,6 +256,26 @@ export function WorkbookFlow() {
             </CardContent></Card>
           )}
 
+          {phase === "notice" && (
+            <Card className="border-primary"><CardContent className="space-y-3 py-4">
+              <p className="flex items-center gap-2 text-sm font-semibold"><MessageCircle className="h-4 w-4" />WhatsApp block notice</p>
+              <p className="text-xs text-muted-foreground">The account is blocked. Notify the customer on WhatsApp before engagement continues.</p>
+              <div className="grid gap-4 md:grid-cols-[auto_1fr]">
+                <PhoneWhatsApp messages={waView} />
+                <div className="space-y-3">
+                {<WhatsAppSender key={caseId} account={alert.account} onSent={(ok, text) => {
+                add("Step 3 WhatsApp", ok ? "Amber" : "Red", text);
+                play([{ from: "engine", to: "whatsapp", label: ok ? "Account-blocked template sent via partner" : "WhatsApp send failed", delay: 100, ms: 640, colour: ok ? "Green" : "Red" }]);
+                if (ok) setWaMsgs((m) => [...m, { who: "bank", text: `Your account ending ${alert.account.slice(-4)} has been temporarily blocked. Please complete the verification to restore access.`, ticks: true }, { who: "bank", text: "Verify here: https://bit.ly/edsq-verify" }]);
+              }} />}
+                  <Button size="sm" disabled={busy} onClick={() => { if (!waMsgs.length) add("WhatsApp block notice", "Amber", "Skipped by presenter."); play([{ from: "engine", to: afterNotice === "voice" ? "voice" : "cases", label: afterNotice === "voice" ? "Starting voice bot" : "Sending case to human review", delay: 200 }]); setPhase(afterNotice); }}>
+                    {waMsgs.length ? "Continue" : "Skip"} → {afterNotice === "voice" ? "Voice bot" : "Human review"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent></Card>
+          )}
+
           {engaging && (
             <Card className="border-primary"><CardContent className="space-y-3 py-4">
               <p className="flex items-center gap-2 text-sm font-semibold">
@@ -261,11 +286,7 @@ export function WorkbookFlow() {
               <div className="grid gap-4 md:grid-cols-[auto_1fr]">
               {phase === "voice" ? <PhoneCall attempt={attempts + 1} retries={th.voiceRetries} connected={answering} transcript={transcript} /> : phase === "bitly" ? <PhoneWhatsApp messages={waView} /> : <div />}
               <div className="space-y-3">
-              {phase === "bitly" && <WhatsAppSender key={caseId} account={alert.account} onSent={(ok, text) => {
-                add("Step 3 WhatsApp", ok ? "Amber" : "Red", text);
-                play([{ from: "engine", to: "whatsapp", label: ok ? "Account-blocked template sent via partner" : "WhatsApp send failed", delay: 100, ms: 640, colour: ok ? "Green" : "Red" }]);
-                if (ok) setWaMsgs((m) => [...m, { who: "bank", text: `Your account ending ${alert.account.slice(-4)} has been temporarily blocked. Please complete the verification to restore access.`, ticks: true }, { who: "bank", text: "Verify here: https://bit.ly/edsq-verify" }]);
-              }} />}
+
               {!answering ? (
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" disabled={busy} onClick={() => { setAnswering(true); play(phase === "voice" ? [{ from: "engine", to: "voice", label: "Dialling customer", delay: 100, ms: 1800 }, { from: "voice", to: "engine", label: "Call connected, running script", delay: 700, colour: "Green" }] : [{ from: "whatsapp", to: "engine", label: "Customer opened questionnaire", delay: 200, colour: "Green" }]); }}>Customer responds</Button>
