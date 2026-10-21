@@ -19,6 +19,7 @@ import { can } from "@/lib/roles";
 import { JourneyStrip } from "@/components/edd/Journey";
 import { alertJourney } from "@/lib/alert-journey";
 import { DemoRunSummary } from "@/components/edd/DemoRuns";
+import { CaseOutreach, CaseStepSummary } from "@/components/edd/CaseOutreach";
 import type { Channel, Recommendation } from "@/data/edd";
 
 export const Route = createFileRoute("/cases/$caseId")({
@@ -45,6 +46,7 @@ function CaseDetailPage() {
   const [confidence, setConfidence] = useState<"Low" | "Medium" | "High">(item?.rationale?.confidence ?? "Medium");
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
+  const [tab, setTab] = useState("overview");
 
   if (!item) {
     return (
@@ -79,6 +81,7 @@ function CaseDetailPage() {
             {item.customer} · {item.account} · {item.upi} · assigned to {item.assignee}{item.contact ? ` · contacted ${item.contact.name} (+${item.contact.phone}, ${item.contact.lang === "HINDI" ? "Hindi" : "English"})` : ""}
           </p>
         </div>
+        <Button variant="outline" size="sm" onClick={() => setTab("engagement")}>Contact customer</Button>
         {item.recommendation && (
           <div className="text-right text-sm">
             <p className="text-muted-foreground">Model recommendation</p>
@@ -111,7 +114,7 @@ function CaseDetailPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="overview">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex-wrap">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="intel">Intelligence &amp; Enrichment</TabsTrigger>
@@ -122,6 +125,7 @@ function CaseDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 grid gap-4 lg:grid-cols-2">
+          <CaseStepSummary item={item} run={run} />
           {run && <DemoRunSummary run={run} />}
           <Card>
             <CardHeader><CardTitle className="text-sm">Risk score</CardTitle></CardHeader>
@@ -180,6 +184,7 @@ function CaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="engagement" className="mt-4 space-y-4">
+          <CaseOutreach item={item} run={run} />
           <Card>
             <CardHeader><CardTitle className="text-sm">Initiate engagement</CardTitle></CardHeader>
             <CardContent className="flex flex-wrap gap-2">

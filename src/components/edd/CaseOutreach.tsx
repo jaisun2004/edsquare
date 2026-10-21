@@ -55,7 +55,7 @@ export function CaseOutreach({ item, run }: { item: EDDCase; run?: DemoRun | und
   const { attachFlow, actor, role } = useEDD();
   const { alert, profile } = useMemo(() => resolve(item, run), [item, run]);
   const avail = outreachAvailability(item, run);
-  const closed = item.stage === "Closed" || !!item.decision;
+  const closed = item.stage === "Closed";
   const [raw, setRaw] = useState(item.contact?.phone ?? "");
   const [name, setName] = useState(item.contact?.name ?? alert.holder);
   const [lang, setLang] = useState<Contact["lang"]>((item.contact?.lang as Contact["lang"]) ?? "ENGLISH");
@@ -109,7 +109,7 @@ export function CaseOutreach({ item, run }: { item: EDDCase; run?: DemoRun | und
       <CardContent className="space-y-3 text-sm">
         {none ? <p className="text-muted-foreground">AI call and WhatsApp were both done in the demo run. See the records below.</p> : (
           <>
-            {closed && <p className="text-xs text-muted-foreground">This case has a decision, so new contact is disabled.</p>}
+            {closed && <p className="text-xs text-muted-foreground">This case is closed, so new contact is disabled.</p>}
             <ContactBox raw={raw} setRaw={setRaw} name={name} setName={setName} lang={lang} setLang={setLang} disabled={closed || !!active} />
             <div className="flex flex-wrap items-center gap-3">
               {avail.call ? <Button size="sm" disabled={closed || !!active || (!offline && !validPhone(phone))} onClick={() => start("voice")}><Phone className="mr-1 h-4 w-4" />Start AI call</Button> : <span className="text-xs text-muted-foreground">AI call already done in demo run.</span>}
