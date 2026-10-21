@@ -66,7 +66,7 @@ export interface TimelineEntry {
   actor: string;
   action: string;
   detail: string;
-  channel?: "checks" | "voice" | "whatsapp" | "decision" | "system";
+  channel?: "checks" | "voice" | "whatsapp" | "decision" | "system" | undefined;
 }
 
 export interface CallAnswer { question: string; answer: string; points: number }
@@ -77,17 +77,17 @@ export interface CallRecord {
   number: string; // masked
   real: boolean;
   startedAt: string;
-  endedAt?: string;
+  endedAt?: string | undefined;
   status: string;
   outcome: "answered" | "no_response" | "failed";
-  disposition?: string;
-  summary?: string;
-  recordingUrl?: string;
-  partnerRecordId?: string;
+  disposition?: string | undefined;
+  summary?: string | undefined;
+  recordingUrl?: string | undefined;
+  partnerRecordId?: string | undefined;
   transcript: { role: string; text: string }[];
-  answers?: CallAnswer[];
-  flag?: number;
-  colour?: string;
+  answers?: CallAnswer[] | undefined;
+  flag?: number | undefined;
+  colour?: string | undefined;
 }
 
 export interface QuestionnaireRecord {
@@ -95,12 +95,12 @@ export interface QuestionnaireRecord {
   number: string; // masked
   real: boolean;
   sentAt: string;
-  submittedAt?: string;
-  link?: string;
+  submittedAt?: string | undefined;
+  link?: string | undefined;
   outcome: "submitted" | "no_response" | "failed";
-  answers?: CallAnswer[];
-  flag?: number;
-  colour?: string;
+  answers?: CallAnswer[] | undefined;
+  flag?: number | undefined;
+  colour?: string | undefined;
 }
 
 export interface Enrichment {
@@ -131,8 +131,8 @@ export interface EDDCase {
   enrichment: Enrichment;
   engagement: EngagementAttempt[];
   timeline: TimelineEntry[];
-  calls?: CallRecord[];
-  questionnaires?: QuestionnaireRecord[];
+  calls?: CallRecord[] | undefined;
+  questionnaires?: QuestionnaireRecord[] | undefined;
   notes: { id: string; author: string; at: string; text: string }[];
   documents: { id: string; name: string; kind: string; at: string }[];
   rationale?: { text: string; evidence: boolean; policy: boolean; confidence: "Low" | "Medium" | "High"; savedBy: string };
