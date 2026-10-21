@@ -248,7 +248,7 @@ export function WorkbookFlow() {
                   <Badge variant="outline" className={c.fired ? colourCls.Red : ""}>{c.fired ? "Fired" : "Pass"}</Badge>
                 </div>
               ))}
-              {phase === "human" && !log.some((l) => !l.step.startsWith("Step 1")) && (
+              {phase === "human" && !log.some((l) => !l.step.startsWith("Step 1") && !l.step.startsWith("WhatsApp block")) && (
                 <Button size="sm" variant="outline" onClick={() => { add("Override", "Amber", "Reviewer chose to continue to customer engagement."); setPhase("voice"); }}>
                   Continue to customer engagement anyway
                 </Button>
