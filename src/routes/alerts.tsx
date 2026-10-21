@@ -26,6 +26,7 @@ export const Route = createFileRoute("/alerts")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>): { open?: string } => (typeof s["open"] === "string" ? { open: s["open"] } : {}),
   component: AlertsPage,
 });
 
@@ -36,9 +37,10 @@ function AlertsPage() {
   const journeys = useJourneys();
   const [source, setSource] = useState("all");
   const [result, setResult] = useState<AlertResult | "all">("all");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const search = Route.useSearch();
+  const [openId, setOpenId] = useState<string | null>(search.open ?? null);
   const navigate = useNavigate();
-  const runTriage = (a: { id: string; source: string; trigger: string; account: string }) => navigate({ to: "/simulator", search: { alert: sheetAlertFor(a as never) } });
+  const runTriage = (a: { id: string; source: string; trigger: string; account: string }) => navigate({ to: "/simulator", search: { alert: sheetAlertFor(a as never), from: a.id, auto: 1 } });
 
   const rows = journeys
     .filter(({ alert, j }) => (source === "all" || alert.source === source) && (result === "all" || j.result === result))
@@ -77,6 +79,7 @@ function AlertsPage() {
                 <TableHead>Signal</TableHead>
                 <TableHead>Journey</TableHead>
                 <TableHead>Result</TableHead>
+                <TableHead>Case</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -93,6 +96,7 @@ function AlertsPage() {
                   <TableCell><RiskChip grade={a.preliminarySignal} /></TableCell>
                   <TableCell><JourneyDots j={j} /></TableCell>
                   <TableCell><ResultBadge r={j.result} /></TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>{j.caseItem ? <Link to="/cases/$caseId" params={{ caseId: j.caseItem.id }} className="font-medium text-primary underline">{j.caseItem.id}</Link> : <span className="text-muted-foreground">—</span>}</TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     {j.result === "New" ? (
                       <div className="flex justify-end gap-2">
@@ -106,7 +110,7 @@ function AlertsPage() {
                 </TableRow>
               ))}
               {rows.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">No alerts match this filter.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">No alerts match this filter.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -118,7 +122,7 @@ function AlertsPage() {
           {open && (
             <>
               <SheetHeader>
-                <SheetTitle className="flex flex-wrap items-center gap-2">{open.alert.id} <ResultBadge r={open.j.result} /></SheetTitle>
+                <SheetTitle className="flex flex-wrap items-center gap-2">{open.alert.id} <ResultBadge r={open.j.result} />{open.j.caseItem && <Link to="/cases/$caseId" params={{ caseId: open.j.caseItem.id }} className="text-sm text-primary underline">{open.j.caseItem.id}</Link>}</SheetTitle>
               </SheetHeader>
               <div className="mt-4 space-y-4 text-sm">
                 <div>
