@@ -66,6 +66,41 @@ export interface TimelineEntry {
   actor: string;
   action: string;
   detail: string;
+  channel?: "checks" | "voice" | "whatsapp" | "decision" | "system";
+}
+
+export interface CallAnswer { question: string; answer: string; points: number }
+
+export interface CallRecord {
+  id: string;
+  attempt: number;
+  number: string; // masked
+  real: boolean;
+  startedAt: string;
+  endedAt?: string;
+  status: string;
+  outcome: "answered" | "no_response" | "failed";
+  disposition?: string;
+  summary?: string;
+  recordingUrl?: string;
+  partnerRecordId?: string;
+  transcript: { role: string; text: string }[];
+  answers?: CallAnswer[];
+  flag?: number;
+  colour?: string;
+}
+
+export interface QuestionnaireRecord {
+  id: string;
+  number: string; // masked
+  real: boolean;
+  sentAt: string;
+  submittedAt?: string;
+  link?: string;
+  outcome: "submitted" | "no_response" | "failed";
+  answers?: CallAnswer[];
+  flag?: number;
+  colour?: string;
 }
 
 export interface Enrichment {
@@ -96,6 +131,8 @@ export interface EDDCase {
   enrichment: Enrichment;
   engagement: EngagementAttempt[];
   timeline: TimelineEntry[];
+  calls?: CallRecord[];
+  questionnaires?: QuestionnaireRecord[];
   notes: { id: string; author: string; at: string; text: string }[];
   documents: { id: string; name: string; kind: string; at: string }[];
   rationale?: { text: string; evidence: boolean; policy: boolean; confidence: "Low" | "Medium" | "High"; savedBy: string };
