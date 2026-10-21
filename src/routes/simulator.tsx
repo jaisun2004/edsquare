@@ -16,12 +16,16 @@ export const Route = createFileRoute("/simulator")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (s: Record<string, unknown>): { alert?: string } => (typeof s["alert"] === "string" ? { alert: s["alert"] } : {}),
+  validateSearch: (s: Record<string, unknown>): { alert?: string; from?: string; auto?: number } => ({
+    ...(typeof s["alert"] === "string" ? { alert: s["alert"] } : {}),
+    ...(typeof s["from"] === "string" ? { from: s["from"] } : {}),
+    ...(s["auto"] === 1 || s["auto"] === "1" ? { auto: 1 } : {}),
+  }),
   component: Simulator,
 });
 
 function Simulator() {
-  const { alert } = Route.useSearch();
+  const { alert, from, auto } = Route.useSearch();
   return (
     <div className="space-y-6">
       <PageHeader title="Demo Simulator" description="Run sample alerts through EDSquare step by step." />
@@ -30,7 +34,7 @@ function Simulator() {
           <TabsTrigger value="workbook">I4C & Model alert flow</TabsTrigger>
           <TabsTrigger value="classic">Transaction pipeline</TabsTrigger>
         </TabsList>
-        <TabsContent value="workbook" className="mt-4"><WorkbookFlow key={alert ?? "default"} initialAlert={alert} /></TabsContent>
+        <TabsContent value="workbook" className="mt-4"><WorkbookFlow key={`${alert ?? "default"}-${from ?? ""}`} initialAlert={alert} fromAlert={from} auto={auto === 1} /></TabsContent>
         <TabsContent value="classic" className="mt-4"><ClassicSimulator /></TabsContent>
       </Tabs>
     </div>
