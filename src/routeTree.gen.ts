@@ -18,7 +18,6 @@ import { Route as EngagementRouteImport } from './routes/engagement'
 import { Route as InvestigationsRouteImport } from './routes/investigations'
 import { Route as NegativeDatabaseRouteImport } from './routes/negative-database'
 import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as SimulatorRouteImport } from './routes/simulator'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminConsentRouteImport } from './routes/admin.consent'
 import { Route as AdminIntegrationsRouteImport } from './routes/admin.integrations'
@@ -75,11 +74,6 @@ const NegativeDatabaseRoute = NegativeDatabaseRouteImport.update({
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SimulatorRoute = SimulatorRouteImport.update({
-  id: '/simulator',
-  path: '/simulator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -153,7 +147,6 @@ export interface FileRoutesByFullPath {
   '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/reports': typeof ReportsRoute
-  '/simulator': typeof SimulatorRoute
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/policy': typeof AdminPolicyRoute
@@ -176,7 +169,6 @@ export interface FileRoutesByTo {
   '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/reports': typeof ReportsRoute
-  '/simulator': typeof SimulatorRoute
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/policy': typeof AdminPolicyRoute
@@ -201,7 +193,6 @@ export interface FileRoutesById {
   '/investigations': typeof InvestigationsRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/reports': typeof ReportsRoute
-  '/simulator': typeof SimulatorRoute
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/policy': typeof AdminPolicyRoute
@@ -227,7 +218,6 @@ export interface FileRouteTypes {
     | '/investigations'
     | '/negative-database'
     | '/reports'
-    | '/simulator'
     | '/admin/consent'
     | '/admin/integrations'
     | '/admin/policy'
@@ -250,7 +240,6 @@ export interface FileRouteTypes {
     | '/investigations'
     | '/negative-database'
     | '/reports'
-    | '/simulator'
     | '/admin/consent'
     | '/admin/integrations'
     | '/admin/policy'
@@ -274,7 +263,6 @@ export interface FileRouteTypes {
     | '/investigations'
     | '/negative-database'
     | '/reports'
-    | '/simulator'
     | '/admin/consent'
     | '/admin/integrations'
     | '/admin/policy'
@@ -299,7 +287,6 @@ export interface RootRouteChildren {
   InvestigationsRoute: typeof InvestigationsRoute
   NegativeDatabaseRoute: typeof NegativeDatabaseRoute
   ReportsRoute: typeof ReportsRoute
-  SimulatorRoute: typeof SimulatorRoute
   CasesCaseIdRoute: typeof CasesCaseIdRoute
   CasesIndexRoute: typeof CasesIndexRoute
 }
@@ -367,13 +354,6 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/simulator': {
-      id: '/simulator'
-      path: '/simulator'
-      fullPath: '/simulator'
-      preLoaderRoute: typeof SimulatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -501,7 +481,6 @@ const rootRouteChildren: RootRouteChildren = {
   InvestigationsRoute: InvestigationsRoute,
   NegativeDatabaseRoute: NegativeDatabaseRoute,
   ReportsRoute: ReportsRoute,
-  SimulatorRoute: SimulatorRoute,
   CasesCaseIdRoute: CasesCaseIdRoute,
   CasesIndexRoute: CasesIndexRoute,
 }
