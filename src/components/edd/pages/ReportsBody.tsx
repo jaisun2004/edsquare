@@ -3,6 +3,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieCh
 import { PageHeader } from "@/components/layout/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { inflowSeries, STAGES } from "@/data/edd";
+import { AlertFunnel } from "@/components/edd/Journey";
 import { DemoRunStats, LatestDemoRuns } from "@/components/edd/DemoRuns";
 import { useEDD } from "@/lib/edd-store";
 
@@ -28,6 +29,7 @@ export function ReportsBody() {
     <div>
       <PageHeader title="Reports & Analytics" description="Programme-level view of EDD throughput and enforcement outcomes." />
 
+      <div className="mb-6"><AlertFunnel /></div>
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
         <DemoRunStats />
         <LatestDemoRuns />

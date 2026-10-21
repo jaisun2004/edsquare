@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 
-import { PageHeader } from "@/components/layout/AppShell";
 import { CategoryBadge, RiskChip, SlaBadge, StageBadge } from "@/components/edd/chips";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,11 +57,10 @@ export function MyWorkBody() {
 
   return (
     <div>
-      <PageHeader
-        title="Investigations Workbench"
-        description="Highest risk and closest to SLA breach first."
-        actions={<Button disabled={!can(role, "assign")} onClick={claim}>Claim next case</Button>}
-      />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">Highest risk and closest to SLA breach first.</p>
+        <Button disabled={!can(role, "assign")} onClick={claim}>Claim next case</Button>
+      </div>
 
       <div className="space-y-6">
         <Card>
