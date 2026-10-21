@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { inflowSeries, teamWorkload } from "@/data/edd";
+import { AlertFunnel } from "@/components/edd/Journey";
 import { LatestDemoRuns } from "@/components/edd/DemoRuns";
 import { useEDD } from "@/lib/edd-store";
 import { roleLabels } from "@/lib/roles";
@@ -62,10 +63,11 @@ function DashboardPage() {
         description={`${roleLabels[role]} view — AI/ML prioritises, bank experts decide.`}
         actions={
           <Button asChild>
-            <Link to="/alerts">Go to alert inbox</Link>
+            <Link to="/simulator">Run a demo</Link>
           </Button>
         }
       />
+      <div className="mb-6"><AlertFunnel /></div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {kpis.map((k) => (

@@ -257,7 +257,7 @@ export function ClassicSimulator() {
             {!run && <p className="text-muted-foreground">Nothing yet.</p>}
             {run && <p>Alert: <Link to="/alerts" className="text-primary underline">{run.alertId}</Link></p>}
             {run?.caseId && <p>Case: <CaseLink id={run.caseId} /></p>}
-            {enf && <p>Enforcement: <Link to="/enforcement" className="text-primary underline">{enf.action}</Link></p>}
+            {enf && <p>Enforcement: <Link to="/outcomes" search={{ tab: "enforcement" }} className="text-primary underline">{enf.action}</Link></p>}
             {run && (
               <div>
                 <p className="mb-1 font-medium">Audit trail</p>

@@ -4,15 +4,13 @@ import {
   Inbox,
   FolderKanban,
   Database,
-  PhoneCall,
-  Search,
-  ShieldBan,
   BarChart3,
   Settings,
   ScrollText,
   Bell,
   RotateCcw,
   PlayCircle,
+  Search,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -26,17 +24,14 @@ import type { Role } from "@/data/edd";
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/alerts", label: "Alert Inbox", icon: Inbox },
-  { to: "/cases", label: "Case Queue", icon: FolderKanban },
-  { to: "/negative-database", label: "Negative Database", icon: Database },
-  { to: "/engagement", label: "Engagement Center", icon: PhoneCall },
-  { to: "/investigations", label: "Investigations", icon: Search },
-  { to: "/enforcement", label: "Enforcement Log", icon: ShieldBan },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/simulator", label: "Demo Simulator", icon: PlayCircle },
+  { to: "/alerts", label: "Alerts", icon: Inbox },
+  { to: "/cases", label: "Cases", icon: FolderKanban },
+  { to: "/outcomes", label: "Outcomes & Reports", icon: BarChart3 },
+  { to: "/negative-database", label: "Negative Database", icon: Database },
   {
     to: "/admin",
-    label: "Administration",
+    label: "Decision Manager",
     icon: Settings,
     children: [
       { to: "/admin/sources", label: "Data sources" },

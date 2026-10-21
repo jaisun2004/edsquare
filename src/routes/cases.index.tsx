@@ -10,15 +10,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { STAGES } from "@/data/edd";
 import { Badge } from "@/components/ui/badge";
+import { MyWorkBody } from "@/components/edd/pages/MyWorkBody";
 import { useEDD } from "@/lib/edd-store";
 import { can } from "@/lib/roles";
 
 export const Route = createFileRoute("/cases/")({
   head: () => ({
     meta: [
-      { title: "Case Queue — EDSquare" },
+      { title: "Cases — EDSquare" },
       { name: "description", content: "Track enhanced due diligence cases across triage, enrichment, engagement, review and decision stages." },
-      { property: "og:title", content: "Case Queue — EDSquare" },
+      { property: "og:title", content: "Cases — EDSquare" },
       { property: "og:description", content: "Kanban and table views of every open EDD case with SLA and risk visibility." },
     ],
   }),
@@ -26,17 +27,23 @@ export const Route = createFileRoute("/cases/")({
 });
 
 function CaseQueuePage() {
-  const { cases, demoRuns, role, moveStage, assignCase } = useEDD();
+  const { cases, demoRuns, alerts, role, moveStage, assignCase } = useEDD();
   const [grade, setGrade] = useState("all");
 
   const liveIds = new Set(demoRuns.map((r) => r.caseId));
+  const howGot = (id: string) => {
+    const r = demoRuns.find((x) => x.caseId === id);
+    if (r) return `${r.alertType} · call ${r.callAnswered ? "answered" : r.callAttempts ? "not answered" : "not placed"} · WhatsApp ${r.whatsappSent ? (r.formSubmitted ? "answered" : "no reply") : "not sent"} · ${r.colour}`;
+    const a = alerts.find((x) => x.caseId === id);
+    return a ? `${a.source}: ${a.trigger}` : "";
+  };
   const rows = cases.filter((c) => grade === "all" || c.grade === grade);
 
   return (
     <div>
       <PageHeader
-        title="Case Queue"
-        description="Every suspected mule or digital-scam account under enhanced due diligence."
+        title="Cases"
+        description="Your work, the stage board and the full list of cases in one place."
         actions={
           <Select value={grade} onValueChange={setGrade}>
             <SelectTrigger className="w-44"><SelectValue placeholder="Risk grade" /></SelectTrigger>
@@ -51,11 +58,14 @@ function CaseQueuePage() {
         }
       />
 
-      <Tabs defaultValue="board">
+      <Tabs defaultValue="mine">
         <TabsList>
+          <TabsTrigger value="mine">My work</TabsTrigger>
           <TabsTrigger value="board">Board</TabsTrigger>
           <TabsTrigger value="table">Table</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="mine" className="mt-4"><MyWorkBody /></TabsContent>
 
         <TabsContent value="board" className="mt-4">
           <div className="grid gap-4 xl:grid-cols-3 2xl:grid-cols-6">
@@ -77,6 +87,7 @@ function CaseQueuePage() {
                         </Link>
                         {liveIds.has(c.id) && <Badge variant="secondary" className="ml-2">Live demo</Badge>}
                         <p className="text-sm text-muted-foreground">{c.customer}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{howGot(c.id)}</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           <RiskChip grade={c.grade} score={c.riskScore} />
                           <CategoryBadge category={c.category} />

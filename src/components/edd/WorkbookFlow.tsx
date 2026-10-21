@@ -63,6 +63,7 @@ export function WorkbookFlow() {
   const qRef = useRef<QuestionnaireRecord[]>([]);
   const caseRef = useRef<string | undefined>(undefined);
   const runIdRef = useRef("");
+  const alertIdRef = useRef("");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [raw, setRaw] = useState("");
   const [cname, setCname] = useState("");
@@ -139,6 +140,7 @@ export function WorkbookFlow() {
       { id, source: alert.type === "I4C" ? "External Intelligence" : "Risk Model", account: alert.account, upi: "—", customer: alert.holder, trigger: `${alert.type === "I4C" ? "I4C complaint" : "Model alert"}: ${alert.reason} (Rs ${alert.amount.toLocaleString("en-IN")})`, receivedAt: new Date().toISOString(), preliminarySignal: "H", status: "New" },
       toAttrs({ customer: alert.holder, account: alert.account, upi: "", amount: alert.amount, channel: "IMPS", counterparties: alert.credits.length + alert.debits.length, accountAgeDays: profile.vintageMonths * 30, dormantDays: 0, passThroughPct: alert.debits.length ? 80 : 20, simSwap: false, newDevice: false, negbaseHit: negbase, complaints: alert.type === "I4C" ? 1 : 0 }),
     );
+    alertIdRef.current = id;
     setPhase("checks");
     setTimeout(() => finishStart(id), 60);
   };
@@ -282,7 +284,7 @@ export function WorkbookFlow() {
     const last = log.at(-1);
     const answeredCall = callsRef.current.filter((c) => c.outcome === "answered").at(-1);
     storeRef.current.recordRun({
-      id: runIdRef.current, at: new Date().toISOString(), alertType: alert.type, account: alert.account, customer: alert.holder,
+      id: runIdRef.current, alertId: alertIdRef.current, at: new Date().toISOString(), alertType: alert.type, account: alert.account, customer: alert.holder,
       number: callsRef.current[0]?.number ?? qRef.current[0]?.number,
       colour: phase === "verified" ? "Green" : (last?.colour as "Red" | "Amber" | "Green" | "Manual" | undefined) ?? "Red",
       outcome: final ?? last?.text ?? "", caseId,
