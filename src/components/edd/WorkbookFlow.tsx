@@ -71,10 +71,9 @@ export function WorkbookFlow() {
     setCaseId(cid);
     const r = dataChecks(alert, profile, negbase, th);
     setChecks(r.checks);
-    setPhase("checks");
     const fired = r.checks.find((c) => c.fired);
     add("Step 1 Data checks", r.outcome, fired ? `${fired.label}: ${fired.detail}. Continue block.` : "No check fired. Move to voice bot.", cid);
-    if (r.outcome === "Amber") setPhase("voice");
+    setPhase(r.outcome === "Amber" ? "voice" : "human");
   };
 
   const noResponse = () => {
