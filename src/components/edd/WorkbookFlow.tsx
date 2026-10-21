@@ -15,6 +15,7 @@ import { toAttrs } from "@/data/scenarios";
 import { dataChecks, defaultThresholds, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
 import { useEDD } from "@/lib/edd-store";
 import { summariseFlowCase } from "@/lib/rule-ai.functions";
+import { WhatsAppSender } from "@/components/edd/WhatsAppSender";
 
 const STEPS = ["Data checks", "Voice bot", "WhatsApp questionnaire", "Email & app alert", "Exit / Manual queue", "Human in the loop"];
 type Phase = "idle" | "checks" | "voice" | "bitly" | "notify" | "exit" | "human" | "done";
@@ -217,6 +218,7 @@ export function WorkbookFlow() {
                 {phase === "voice" ? `Step 2 · Voice bot (attempt ${attempts + 1} of ${th.voiceRetries})` : phase === "bitly" ? "Step 3 · WhatsApp self-service questionnaire" : "Step 4 · Email & mobile app alert"}
                 <Badge variant="outline">{script}</Badge>
               </p>
+              {phase === "bitly" && <WhatsAppSender key={caseId} account={alert.account} onSent={(ok, text) => add("Step 3 WhatsApp", ok ? "Amber" : "Red", text)} />}
               {phase === "voice" && <div className="space-y-0.5 rounded-md bg-muted p-3 text-xs">{greeting.map((g) => <p key={g}>🤖 {g.replace("{name}", alert.holder).replace("{last4}", alert.account.slice(-4))}</p>)}</div>}
               {!answering ? (
                 <div className="flex flex-wrap gap-2">
