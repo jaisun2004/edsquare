@@ -96,7 +96,9 @@ interface StoreValue {
   attachFlow: (caseId: string, f: { events?: FlowLogEntry[]; calls?: CallRecord[]; questionnaires?: QuestionnaireRecord[] }) => void;
 }
 
-const StoreContext = createContext<StoreValue | null>(null);
+// Keep one context object across hot reloads so an edited store module never orphans the mounted provider.
+const g = globalThis as { __eddStoreContext?: React.Context<StoreValue | null> };
+const StoreContext = (g.__eddStoreContext ??= createContext<StoreValue | null>(null));
 
 export function EDDProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>("analyst");
