@@ -85,6 +85,8 @@ export interface CallRecord {
   recordingUrl?: string | undefined;
   partnerRecordId?: string | undefined;
   transcript: { role: string; text: string }[];
+  /** Started from the case page rather than the demo run. */
+  origin?: "case" | undefined;
   answers?: CallAnswer[] | undefined;
   flag?: number | undefined;
   colour?: string | undefined;
@@ -98,6 +100,7 @@ export interface QuestionnaireRecord {
   submittedAt?: string | undefined;
   link?: string | undefined;
   outcome: "submitted" | "no_response" | "failed";
+  origin?: "case" | undefined;
   answers?: CallAnswer[] | undefined;
   flag?: number | undefined;
   colour?: string | undefined;
