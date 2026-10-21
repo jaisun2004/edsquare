@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cbsProfiles, greeting, questionsFor, workbookAlerts } from "@/data/workbook";
 import { toAttrs } from "@/data/scenarios";
-import { dataChecks, defaultThresholds, waCheckOutcome, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
+import { answerPoints, dataChecks, defaultThresholds, waCheckOutcome, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
 import { useEDD } from "@/lib/edd-store";
 import { summariseFlowCase } from "@/lib/rule-ai.functions";
 import { CaseCreatedCard, EngineConsole, FlowLanes, PhoneCall, PhoneWhatsApp, type StampedEvent } from "@/components/edd/live/LiveFlow";
