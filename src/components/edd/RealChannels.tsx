@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CbsProfile, ScriptQuestion, WorkbookAlert } from "@/data/workbook";
 import { callState, normalName, normalisePhone, prettyPhone } from "@/lib/voice";
@@ -167,6 +168,7 @@ export function RealWhatsAppPanel(p: Common) {
   const sendTemplate = useServerFn(sendAccountBlockedWhatsApp);
   const [tpl, setTpl] = useState<{ ok: boolean; text: string }>();
   const [txt, setTxt] = useState<{ ok: boolean; text: string }>();
+  const [popup, setPopup] = useState(false);
   const read = useServerFn(getQuestionnaire);
   const phone = p.contact.phone;
   const [used, setUsed] = useState(0);
@@ -203,15 +205,17 @@ export function RealWhatsAppPanel(p: Common) {
       p.onLog({ ok: r.ok, ms: r.ms, text: r.ok ? `WhatsApp questionnaire sent to ${maskNumber(phone)}${r.messageId ? " (message accepted)" : ""}.` : `WhatsApp send failed (${r.status || "no connection"}): ${r.body}` });
       const sentAt = new Date().toISOString();
       const qrec = (outcome: QuestionnaireRecord["outcome"], submittedAt?: string): QuestionnaireRecord => ({ id: `Q-${token.slice(0, 8)}`, number: maskNumber(phone), real: true, sentAt, link: url, outcome, submittedAt });
-      if (!r.ok && !t.ok) { setErr(r.error ?? r.body); setStage("idle"); p.onQuestionnaire?.(qrec("failed")); return; }
-      p.onQuestionnaire?.(qrec("no_response"));
+      if (!r.ok && !t.ok) { setErr(`${r.error ?? r.body}. You can still open the questionnaire as a popup for the demo.`); p.onQuestionnaire?.(qrec("failed")); }
+      if (r.ok || t.ok) p.onQuestionnaire?.(qrec("no_response"));
       setStage("waiting");
+      setPopup(true);
       clearInterval(timer.current);
       timer.current = setInterval(async () => {
         try {
           const q = await read({ data: { token } });
           if (q?.status === "submitted" && q.answers) {
             clearInterval(timer.current);
+            setTimeout(() => setPopup(false), 1500);
             setStage("done");
             p.onLog({ ok: true, text: "Customer submitted the questionnaire from their phone." });
             p.onQuestionnaire?.(qrec("submitted", new Date().toISOString()));
@@ -234,6 +238,33 @@ export function RealWhatsAppPanel(p: Common) {
       </div>
       {tpl && <p className={`text-xs ${tpl.ok ? "" : "text-destructive"}`}><b>1. Template:</b> {tpl.text}</p>}
       {txt && <p className={`text-xs ${txt.ok ? "" : "text-destructive"}`}><b>2. Questionnaire link:</b> {txt.text}</p>}
+      {link && <Button size="sm" variant="outline" onClick={() => setPopup(true)}>Open questionnaire popup</Button>}
+      {link && (
+        <Dialog open={popup} onOpenChange={setPopup}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Customer questionnaire · what the customer sees</DialogTitle>
+              <DialogDescription>Answers submitted here go straight into the case, just like from the customer's phone.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+              <div className="space-y-2 rounded-md border p-3 text-xs">
+                <p className="font-semibold">Case details</p>
+                <p><span className="text-muted-foreground">Alert:</span> {p.alert.type === "I4C" ? "I4C complaint" : "Model alert"} · {p.alert.reason}</p>
+                <p><span className="text-muted-foreground">Account holder:</span> {normalName(p.alert.holder)}</p>
+                <p><span className="text-muted-foreground">Account:</span> ••••{p.alert.account.slice(-4)} ({p.profile.accountType})</p>
+                <p><span className="text-muted-foreground">Amount:</span> Rs {inr(p.alert.amount)} on {p.alert.date}</p>
+                <p><span className="text-muted-foreground">Contact:</span> {p.contact.name} · {prettyPhone(phone)}</p>
+                <p><span className="text-muted-foreground">Questions:</span> {p.qs.length}</p>
+                <p className="pt-1 text-muted-foreground">{stage === "done" ? "Answers received." : "Waiting for answers…"}</p>
+              </div>
+              <div className="overflow-hidden rounded-lg border">
+                <div className="flex items-center gap-1.5 border-b bg-muted px-3 py-2"><span className="h-2.5 w-2.5 rounded-full bg-destructive/70" /><span className="h-2.5 w-2.5 rounded-full bg-accent" /><span className="h-2.5 w-2.5 rounded-full bg-primary/60" /><span className="ml-2 truncate text-[11px] text-muted-foreground">{link}</span></div>
+                <iframe title="Customer questionnaire" src={`${window.location.origin}${new URL(link).pathname}`} className="h-[480px] w-full bg-background" />
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
       {link && <p className="break-all text-xs">Link: <a href={link} target="_blank" rel="noreferrer" className="text-primary underline">{link}</a></p>}
       {err && <p className="text-xs text-destructive">{err}</p>}
       <div className="flex items-center gap-3">
