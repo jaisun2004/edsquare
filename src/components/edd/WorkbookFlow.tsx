@@ -16,9 +16,10 @@ import { answerPoints, dataChecks, defaultThresholds, waCheckOutcome, exitOutcom
 import { useEDD } from "@/lib/edd-store";
 import { summariseFlowCase } from "@/lib/rule-ai.functions";
 import { CaseCreatedCard, EngineConsole, FlowLanes, PhoneCall, PhoneWhatsApp, type StampedEvent } from "@/components/edd/live/LiveFlow";
+import { QuestionnaireWindow } from "@/components/edd/live/QuestionnaireWindow";
 import { caseEvents, intakeEvents, whatsappEvents, type FlowEvent } from "@/lib/flow-events";
 
-const STEPS = ["Data checks", "WhatsApp check", "Voice bot", "Email & app alert", "Exit / Manual queue", "Case & human review"];
+const STEPS = ["Data checks", "Customer questionnaire", "Voice bot", "Email & app alert", "Exit / Manual queue", "Case & human review"];
 type Phase = "idle" | "checks" | "wa_check" | "voice" | "notify" | "exit" | "human" | "verified" | "done";
 const phaseIdx: Record<Phase, number> = { idle: -1, checks: 0, wa_check: 1, voice: 2, notify: 3, exit: 4, human: 5, verified: 6, done: 6 };
 
@@ -112,7 +113,7 @@ export function WorkbookFlow() {
         return;
       }
       setWaMsgs([{ who: "bank", text: `Airtel Payments Bank: we noticed a transaction of Rs ${alert.amount.toLocaleString("en-IN")} on your account ending ${alert.account.slice(-4)}. Please confirm a few details so we can verify it.`, ticks: true }, { who: "bank", text: "Answer here: https://bit.ly/edsq-q" }]);
-      play([{ from: "engine", to: "whatsapp", label: "Verification questionnaire sent on WhatsApp", delay: 200, ms: 640 }]);
+      play([{ from: "engine", to: "whatsapp", label: "Verification questionnaire sent to customer", delay: 200, ms: 640 }]);
       setPhase("wa_check");
     });
   };
@@ -125,7 +126,7 @@ export function WorkbookFlow() {
       add("Step 2 Voice bot", "Amber", `Attempt ${n}/${th.voiceRetries}: no response / call disconnected.`);
       if (n >= th.voiceRetries) { play([{ from: "engine", to: "source", label: "Email + app push sent", delay: 600, ms: 140 }]); setPhase("notify"); }
     } else if (phase === "wa_check") {
-      add("Step 2 WhatsApp check", "Amber", "No reply to the WhatsApp questionnaire. Moving to voice bot.");
+      add("Step 2 Questionnaire", "Amber", "No reply to the questionnaire. Moving to voice bot.");
       play([{ from: "whatsapp", to: "engine", label: "No reply within window", delay: 300, colour: "Amber" }, { from: "engine", to: "voice", label: "Starting voice bot", delay: 400 }]);
       setAnswers({});
       setPhase("voice");
@@ -143,7 +144,7 @@ export function WorkbookFlow() {
   const submitAnswers = () => {
     if (phase === "wa_check") {
       const o = waCheckOutcome(flag, merchant, th);
-      add("Step 2 WhatsApp check", o.colour, `Response flag ${flag}: ${o.clears ? "transaction verified by customer. Freeze lifted, no case created." : "not cleared, moving to voice bot."}`);
+      add("Step 2 Questionnaire", o.colour, `Response flag ${flag}: ${o.clears ? "transaction verified by customer. Freeze lifted, no case created." : "not cleared, moving to voice bot."}`);
       play(whatsappEvents(answers, flag, o.colour, o.clears));
       setAnswering(false);
       setAnswers({});
