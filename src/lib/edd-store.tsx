@@ -28,6 +28,7 @@ import {
   type RuleSet,
   type Strategy,
 } from "@/data/policy";
+import { workbookSources } from "@/data/workbook";
 import { alertAttributes, attributes as seedAttributes, dataSources as seedSources, type AttrMap, type Attribute, type DataSource } from "@/data/sources";
 import { availableAttrs, runPolicy, type PolicyResult } from "@/lib/rule-engine";
 
@@ -88,6 +89,7 @@ interface StoreValue {
   toggleRule: (ruleId: string) => void;
   resetDemo: () => void;
   injectAlert: (alert: Alert, attrs: AttrMap) => void;
+  logEvent: (caseId: string | undefined, action: string, detail: string) => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -99,7 +101,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
   const [rules, setRules] = useState<RuleDef[]>(() => clone(seedRuleDefs));
   const [ruleSets, setRuleSets] = useState<RuleSet[]>(() => clone(seedRuleSets));
   const [ruleGroups] = useState<RuleGroup[]>(() => clone(seedRuleGroups));
-  const [sources, setSources] = useState<DataSource[]>(() => clone(seedSources));
+  const [sources, setSources] = useState<DataSource[]>(() => clone([...seedSources, ...workbookSources]));
   const [attributes, setAttributes] = useState<Attribute[]>(() => clone(seedAttributes));
   const [policyVersions, setPolicyVersions] = useState<PolicyVersion[]>(() => [
     { version: "v3.0", at: new Date(Date.now() - 20 * 86400_000).toISOString(), by: "Policy team", note: "Baseline money-mule EDD policy", rules: clone(seedRuleDefs), sets: clone(seedRuleSets) },
@@ -465,6 +467,11 @@ export function EDDProvider({ children }: { children: ReactNode }) {
         logAudit("Rule toggled", ruleId, "state changed");
       },
 
+      logEvent: (caseId, action, detail) => {
+        logAudit(action, "—", detail, caseId);
+        if (caseId) appendTimeline(caseId, action, detail);
+      },
+
       injectAlert: (alert, attrs) => {
         setExtraAttrs((prev) => ({ ...prev, [alert.id]: attrs }));
         setAlerts((prev) => [alert, ...prev]);
@@ -477,7 +484,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
         setCases(clone(seedCases));
         setRules(clone(seedRuleDefs));
         setRuleSets(clone(seedRuleSets));
-        setSources(clone(seedSources));
+        setSources(clone([...seedSources, ...workbookSources]));
         setAttributes(clone(seedAttributes));
         setEnforcement(clone(seedEnforcement));
         setAudit(clone(seedAudit));
