@@ -76,7 +76,7 @@ function CaseDetailPage() {
             <SlaBadge dueAt={item.slaDueAt} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            {item.customer} · {item.account} · {item.upi} · assigned to {item.assignee}
+            {item.customer} · {item.account} · {item.upi} · assigned to {item.assignee}{item.contact ? ` · contacted ${item.contact.name} (+${item.contact.phone}, ${item.contact.lang === "HINDI" ? "Hindi" : "English"})` : ""}
           </p>
         </div>
         {item.recommendation && (

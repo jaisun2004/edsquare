@@ -9,6 +9,8 @@ export interface DemoRun {
   alertType: string;
   account: string;
   customer: string;
+  /** Name entered for the person actually called / messaged. */
+  contactName?: string | undefined;
   number?: string | undefined; // masked
   colour: RunColour;
   outcome: string;

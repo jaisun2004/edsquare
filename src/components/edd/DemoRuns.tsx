@@ -30,7 +30,7 @@ export function LatestDemoRuns({ limit = 5 }: { limit?: number }) {
         {demoRuns.slice(0, limit).map((r) => (
           <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border p-3">
             <div className="min-w-0">
-              <p className="font-medium">{r.customer} <span className="text-xs text-muted-foreground">· {r.alertType} · {formatDateTime(r.at)}</span></p>
+              <p className="font-medium">{r.customer}{r.contactName && r.contactName !== r.customer ? ` (contacted ${r.contactName})` : ""} <span className="text-xs text-muted-foreground">· {r.alertType} · {formatDateTime(r.at)}</span></p>
               <p className="truncate text-xs text-muted-foreground">{path(r)}</p>
             </div>
             <div className="flex items-center gap-2">
