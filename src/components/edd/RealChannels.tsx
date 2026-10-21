@@ -35,7 +35,7 @@ export function ContactBox({ raw, setRaw, name, setName, lang, setLang, disabled
   const hint = !raw ? null : validPhone(phone)
     ? <p className="text-[11px] text-muted-foreground">Will use {prettyPhone(phone)}{phone !== raw.replace(/\D/g, "") ? " (country code added)" : ""}</p>
     : <p className="text-[11px] text-destructive">Enter a 10-digit mobile number</p>;
-  const langSel = <Select value={lang} onValueChange={(v) => setLang(v as Contact["lang"])} disabled={disabled}><SelectTrigger className={compact ? "h-8 w-28" : ""}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ENGLISH">English</SelectItem><SelectItem value="HINDI">Hindi</SelectItem></SelectContent></Select>;
+  const langSel = <Select value={lang} onValueChange={(v) => setLang(v as Contact["lang"])} disabled={!!disabled}><SelectTrigger className={compact ? "h-8 w-28" : ""}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ENGLISH">English</SelectItem><SelectItem value="HINDI">Hindi</SelectItem></SelectContent></Select>;
   if (compact) return (
     <div className="flex items-center gap-2">
       <Input className="h-8 w-40" value={raw} onChange={(e) => setRaw(e.target.value.replace(/[^\d+ ]/g, ""))} placeholder="Customer mobile" disabled={disabled} />
