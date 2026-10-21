@@ -10,6 +10,7 @@ import {
   Bell,
   RotateCcw,
   PlayCircle,
+  Search,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
