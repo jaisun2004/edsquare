@@ -104,6 +104,13 @@ interface StoreValue {
   attachFlow: (caseId: string, f: { events?: FlowLogEntry[]; calls?: CallRecord[]; questionnaires?: QuestionnaireRecord[] }) => void;
 }
 
+const SAMPLES = buildSamples();
+const SEED_ALERTS = [...SAMPLES.alerts, ...seedAlerts];
+const SEED_CASES = [...SAMPLES.cases, ...seedCases];
+const SEED_ENFORCEMENT = [...SAMPLES.enforcement, ...seedEnforcement];
+const SEED_ALERT_IDS = new Set(SEED_ALERTS.map((a) => a.id));
+const SEED_CASE_IDS = new Set(SEED_CASES.map((c) => c.id));
+const SEED_ENF_IDS = new Set(SEED_ENFORCEMENT.map((e) => e.id));
 // Keep one context object across hot reloads so an edited store module never orphans the mounted provider.
 const DEMO_KEY = "edsquare.demoRuns";
 const g = globalThis as { __eddStoreContext?: Context<StoreValue | null> };
@@ -127,7 +134,6 @@ export function EDDProvider({ children }: { children: ReactNode }) {
   const [extraAttrs, setExtraAttrs] = useState<Record<string, AttrMap>>({});
   const [demoRuns, setDemoRuns] = useState<DemoRun[]>(() => clone(SAMPLES.runs));
   const [loaded, setLoaded] = useState(false);
-  const savedRef = useRef<string>("");
   const sentRef = useRef<Map<string, string>>(new Map());
 
   // Demo runs, the cases/alerts they created and decisions are kept in the shared demo database,
@@ -155,7 +161,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
     const items: DemoRecord[] = [
       ...demoRuns.filter((r) => !r.sample).map((d) => ({ id: d.id, kind: "run" as const, data: d })),
       ...cases.filter((c) => !SEED_CASE_IDS.has(c.id)).map((d) => ({ id: d.id, kind: "case" as const, data: d })),
-      ...alerts.filter((a) => !SEED_ALERT_IDS.has(a.id) || a.status !== "New").filter((a) => !SEED_ALERT_IDS.has(a.id)).map((d) => ({ id: d.id, kind: "alert" as const, data: d })),
+      ...alerts.filter((a) => !SEED_ALERT_IDS.has(a.id)).map((d) => ({ id: d.id, kind: "alert" as const, data: d })),
       ...enforcement.filter((e) => !SEED_ENF_IDS.has(e.id)).map((d) => ({ id: d.id, kind: "enforcement" as const, data: d })),
     ];
     const changed = items.filter((i) => sentRef.current.get(`${i.kind}:${i.id}`) !== JSON.stringify(i.data));
@@ -552,7 +558,7 @@ export function EDDProvider({ children }: { children: ReactNode }) {
 
       resetDemo: () => {
         setExtraAttrs({});
-        setDemoRuns(clone(SAMPLES.runs)); void clearDemoRecords().catch(() => undefined); savedRef.current = "";
+        setDemoRuns(clone(SAMPLES.runs)); void clearDemoRecords().catch(() => undefined); sentRef.current.clear();
         setAlerts(clone(SEED_ALERTS));
         setCases(clone(SEED_CASES));
         setRules(clone(seedRuleDefs));
