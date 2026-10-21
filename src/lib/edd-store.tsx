@@ -125,25 +125,47 @@ export function EDDProvider({ children }: { children: ReactNode }) {
   const [enforcement, setEnforcement] = useState<EnforcementEntry[]>(() => clone(SEED_ENFORCEMENT));
   const [audit, setAudit] = useState<AuditEntry[]>(() => clone(seedAudit));
   const [extraAttrs, setExtraAttrs] = useState<Record<string, AttrMap>>({});
-  const [demoRuns, setDemoRuns] = useState<DemoRun[]>([]);
+  const [demoRuns, setDemoRuns] = useState<DemoRun[]>(() => clone(SAMPLES.runs));
   const [loaded, setLoaded] = useState(false);
+  const savedRef = useRef<string>("");
+  const sentRef = useRef<Map<string, string>>(new Map());
 
-  // Keep demo runs and the cases they created for the browser session.
+  // Demo runs, the cases/alerts they created and decisions are kept in the shared demo database,
+  // so they survive refreshes, new tabs and the published app.
   useEffect(() => {
-    try {
-      const saved = JSON.parse(sessionStorage.getItem(DEMO_KEY) ?? "null") as { runs: DemoRun[]; cases: EDDCase[] } | null;
-      if (saved) {
-        setDemoRuns(saved.runs);
-        setCases((prev) => [...saved.cases.filter((c) => !prev.some((p) => p.id === c.id)), ...prev]);
-      }
-    } catch { /* ignore */ }
-    setLoaded(true);
+    let alive = true;
+    listDemoRecords()
+      .then((rows) => {
+        if (!alive) return;
+        const of = <T,>(k: DemoRecord["kind"]) => rows.filter((r) => r.kind === k).map((r) => r.data as unknown as T);
+        const mergeIn = <T extends { id: string }>(saved: T[]) => (prev: T[]) => [...saved.filter((s) => !prev.some((p) => p.id === s.id)).reverse(), ...prev.map((p) => saved.find((s) => s.id === p.id) ?? p)];
+        for (const r of rows) sentRef.current.set(r.id, JSON.stringify(r.data));
+        setDemoRuns(mergeIn(of<DemoRun>("run")));
+        setCases(mergeIn(of<EDDCase>("case")));
+        setAlerts(mergeIn(of<Alert>("alert")));
+        setEnforcement(mergeIn(of<EnforcementEntry>("enforcement")));
+      })
+      .catch(() => undefined)
+      .finally(() => alive && setLoaded(true));
+    try { sessionStorage.removeItem(DEMO_KEY); } catch { /* ignore */ }
+    return () => { alive = false; };
   }, []);
   useEffect(() => {
     if (!loaded) return;
-    const ids = new Set(demoRuns.map((r) => r.caseId).filter(Boolean));
-    sessionStorage.setItem(DEMO_KEY, JSON.stringify({ runs: demoRuns, cases: cases.filter((c) => ids.has(c.id)) }));
-  }, [loaded, demoRuns, cases]);
+    const items: DemoRecord[] = [
+      ...demoRuns.filter((r) => !r.sample).map((d) => ({ id: d.id, kind: "run" as const, data: d })),
+      ...cases.filter((c) => !SEED_CASE_IDS.has(c.id)).map((d) => ({ id: d.id, kind: "case" as const, data: d })),
+      ...alerts.filter((a) => !SEED_ALERT_IDS.has(a.id) || a.status !== "New").filter((a) => !SEED_ALERT_IDS.has(a.id)).map((d) => ({ id: d.id, kind: "alert" as const, data: d })),
+      ...enforcement.filter((e) => !SEED_ENF_IDS.has(e.id)).map((d) => ({ id: d.id, kind: "enforcement" as const, data: d })),
+    ];
+    const changed = items.filter((i) => sentRef.current.get(`${i.kind}:${i.id}`) !== JSON.stringify(i.data));
+    if (!changed.length) return;
+    const t = setTimeout(() => {
+      for (const i of changed) sentRef.current.set(`${i.kind}:${i.id}`, JSON.stringify(i.data));
+      void saveDemoRecords({ data: { items: changed } }).catch(() => { for (const i of changed) sentRef.current.delete(`${i.kind}:${i.id}`); });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [loaded, demoRuns, cases, alerts, enforcement]);
 
   const actor = roleActors[role];
 
