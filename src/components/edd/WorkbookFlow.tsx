@@ -15,7 +15,7 @@ import { toAttrs } from "@/data/scenarios";
 import { answerPoints, dataChecks, defaultThresholds, stepOutcome, SHEET_STEPS, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
 import { useEDD } from "@/lib/edd-store";
 import { summariseFlowCase } from "@/lib/rule-ai.functions";
-import { CaseCreatedCard, EngineConsole, FlowLanes, PhoneCall, PhoneWhatsApp, type StampedEvent } from "@/components/edd/live/LiveFlow";
+import { CaseCreatedCard, EngineConsole, FlowLanes, PhoneCall, type StampedEvent } from "@/components/edd/live/LiveFlow";
 import { QuestionnaireWindow } from "@/components/edd/live/QuestionnaireWindow";
 import { caseEvents, intakeEvents, scoreEvents, type FlowEvent } from "@/lib/flow-events";
 import { RealVoicePanel, RealWhatsAppPanel, type ChannelLog } from "@/components/edd/RealChannels";
@@ -56,7 +56,6 @@ export function WorkbookFlow() {
   const [speed, setSpeed] = useState(1);
   const [presenter, setPresenter] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [waMsgs, setWaMsgs] = useState<{ who: "bank" | "cust"; text: string; ticks?: boolean }[]>([]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const stamp = (e: FlowEvent): StampedEvent => ({ ...e, at: new Date().toLocaleTimeString("en-IN", { hour12: false }) });
@@ -180,7 +179,7 @@ export function WorkbookFlow() {
 
   const reset = () => {
     triageRef.current = undefined;
-    timers.current.forEach(clearTimeout); timers.current = []; setEvents([]); setWaMsgs([]); setBusy(false);
+    timers.current.forEach(clearTimeout); timers.current = []; setEvents([]); setBusy(false);
     setPhase("idle"); setCaseId(undefined); setChecks([]); setAttempts(0); setAnswering(false); setAnswers({}); setLog([]); setSummary(undefined); setFinal(undefined);
   };
 
