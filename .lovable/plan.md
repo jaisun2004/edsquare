@@ -1,32 +1,57 @@
-# Real WhatsApp and AI voice calls in the Demo Simulator
+# Workbook-driven demo: I4C complaints and Model alerts
 
-During a demo, the Engagement step in the Demo Simulator can reach a real phone. It sends a real WhatsApp message and places a real AI voice call. The customer's replies show up live in the case.
+## What the workbook says
 
-## What the presenter sees
-1. In **Demo Simulator**, a new "Customer phone" field takes any number, with a country code.
-2. At the **Engagement** step, there are two buttons: **Send WhatsApp** and **Place AI call**. A "Live" badge shows that the message or call is real and not simulated.
-3. **WhatsApp:** the customer gets a verification message asking them to confirm the source of a recent credit. A live chat panel shows each message's status (sent, delivered, read) and the customer's replies as they arrive.
-4. **AI call:** the phone rings, and an AI agent introduces itself as the bank's verification line. It asks 3 or 4 questions about the source of funds and the account's use, then ends the call. The transcript and an AI summary appear in the case.
-5. The replies are scored by AI, for example "inconsistent explanation", and the case risk updates. The presenter still makes the final decision ("AI prioritises. Bank experts decide.").
-6. If the live services are not set up, the existing simulated engagement still works, so the demo never breaks.
+| Sheet | Contents | How it is used |
+|---|---|---|
+| scenarios | A 5-step flow for 2 alert types (I4C, Internal/Model), with Red/Amber/Green outcomes | Becomes the step engine in the Demo Simulator and on cases |
+| Scripts | 4 question sets: I4C voice script, Model voice script, Model "Debits and Credits" script, and I4C/Model questionnaires (Bitly links) | Voice bot and WhatsApp/self-service questions |
+| Alert Samples | 3 I4C complaints (Ranga, Sailee, Narang) and 2 Model alerts (Ranga, Sailee) | Replace the simulator presets and seed the Alert Inbox |
+| Core Bank DB Sample | Profiles for accounts 9120303030 / 032 / 034: averages, 75th percentiles, balance, pin code, risk, past blocks | The new "Core Banking" data source the checks read from |
+| Bank or Airtel DB | Empty template with the same fields (60-day EOD summary) | Shown as a second, not-yet-connected source in Data Sources |
 
-## What you'll need to set up
-- **WhatsApp Business:** you already have a number, so you connect it once from a card in chat. Meta's rules mean the first message to a new customer must use an approved template, and approval can take up to 48 hours. I'll create the "verification" template right away. Until it's approved, you can test by messaging the business number from your phone first, since replies within 24 hours need no template.
-- **AI voice calls:** this needs a Twilio account with a voice phone number, connected from a card in chat. The voice agent runs on ElevenLabs, which is already linked for the video. Calls cost a small amount per minute on your Twilio account.
-- **Lovable Cloud:** this is turned on to store messages, call transcripts and delivery updates.
+## The flow (from the scenarios sheet)
 
-## Safeguards (since any number can be entered)
-- The presenter confirms the number before each send or call.
-- Each number is limited to a few messages and calls per hour, and there is a daily cap overall.
-- The number is partly hidden in the Audit Trail.
-- After Twilio is connected, I'll recommend turning on its fraud protection (SMS pumping protection and limiting which countries can be called).
+```text
+Step 1 Data checks -> Step 2 Voice bot (3 tries/day) -> Step 3 WhatsApp questionnaire
+ -> Step 4 Email & app alert -> Step 5 Exit (I4C: continue block) / Manual queue (Model)
+ -> Human in the loop: summary, then block or unblock
+Each step returns: Red = continue block, Amber = next step, Green = unblock, Manual = review queue
+```
+
+**Step 1 data checks (in order)**
+1. Found in the mFilterIt Negative Database: Red, continue block.
+2. Reported amount over Rs 5,000 and at least 2x the average daily credit: continue block.
+3. Transaction over 20% of the sum of credits: continue block.
+4. Otherwise go to Step 2.
+
+**Steps 2 to 4 (answers to the script)**
+- Response flag over 10: continue block.
+- Response flag 8 to 10 and not a merchant account: continue block.
+- Merchant account: send to the Manual review queue.
+- Below 8: Green (unblock recommendation, still confirmed by a person).
+- No answer or call dropped counts as no response. The voice bot retries up to 3 times, then moves to the next step.
+
+**Response flag (my assumption, please confirm):** each answer earns risk points when it does not match core banking. Examples: the employment answer differs from the recorded employment, the pin code differs from the mailing pin code, the customer does not know the sender, or the reason does not fit the account type. The total is the flag.
+
+## What gets built
+
+1. **Sample data from the workbook.** The 5 alerts and 3 core banking profiles are added exactly as given. Workbook typos in names stay as they are; only the obvious spelling mistakes in labels get fixed.
+2. **Demo Simulator update.** The presets become the 5 workbook alerts, grouped as I4C complaint and Model alert. The step tracker follows the 5 steps above. Each step shows which check fired, the actual values (such as "Rs 1,00,000 vs average Rs 1,000/day = 100x"), and its colour outcome.
+3. **Interactive voice bot and questionnaire.** The presenter plays the customer and picks answers from the script options (Business / Friendly transfer / Fees, etc.), or picks "No response". The response flag adds up live. The correct script is chosen automatically: I4C, Model, or Model with debits when the alert has outgoing payments.
+4. **Step 4 and Step 5.** Simulated email and in-app notifications. I4C runs exit with "continue block" plus a self-service link. Model alerts go to the Manual review queue.
+5. **Human-in-the-loop summary.** An AI-written case summary (checks, answers, flag, profile mismatches) with Block / Unblock buttons. Every step is written to the Audit Trail.
+6. **Rules in the Decision Manager.** The Step 1 checks and the flag thresholds appear as editable rules, so the thresholds (5,000, 2x, 20%, 8 and 10) can be changed live in the demo.
+7. **Data Sources.** "Core Banking (CBS)" is filled in with the sample fields. "Bank / Airtel 60-day summary" appears as a pending source.
+
+## Questions to confirm (defaults used if you don't answer)
+- Is the response-flag scoring above right? Or do you have point values per answer?
+- Rule 3 says "sum of credits in last two account". I read this as the last 2 days of credits.
+- Is Narang (I4C #3, no model alert and no Step 1 hit expected) meant to be the clean or Green case?
 
 ## Technical details
-- Enable Lovable Cloud. The tables are `whatsapp_webhook_events` (a durable inbox), `engagement_messages` (outbound and inbound records with the Meta message id and status), `voice_calls` (call id, status, transcript, summary) and `engagement_limits`.
-- Server functions in `src/lib/engagement.functions.ts`: `sendWhatsApp` (sends a template or free-form message through the WhatsApp connector gateway) and `placeAiCall` (starts an outbound call with an ElevenLabs agent over a Twilio number). Both check the rate limits.
-- Webhooks:
-  - `POST /api/public/whatsapp/webhook`: verified with `@lovable.dev/webhooks-js`, stores events idempotently, matches status updates by message id, and saves inbound replies.
-  - `POST /api/public/voice/webhook`: receives the post-call transcript from ElevenLabs, checked with a signature.
-- After a reply or a finished call, the Lovable AI Gateway classifies the answer, and the result feeds the existing engagement re-score in `edd-store`.
-- The simulator checks the database every few seconds while an engagement is live and merges results into the session case timeline.
-- Callbacks need the WhatsApp connection's "Incoming messages" destination set to this project. Live replies only fully work on the published site.
+- New `src/data/workbook.ts` holds the alerts, CBS profiles and scripts. Scripts are structured as questions with options and points per option.
+- New pure `src/lib/edd-flow.ts` holds the step engine (checks, flag thresholds, retries). It reads thresholds from the policy rules so the Decision Manager stays the source of truth, and it reuses `rule-engine` where possible.
+- Add Vitest tests for each workbook rule: Negative Database hit means Red; Rs 5,000 and 2x means block; 20% means block; flag over 10, 8 to 10 with non-merchant, merchant goes to manual; 3 voice retries.
+- The AI summary uses a server function in `rule-ai.functions.ts`, with a fallback template if AI is unavailable.
+- Real WhatsApp and voice calling stay out of scope (the earlier plan was skipped). Both are simulated.
