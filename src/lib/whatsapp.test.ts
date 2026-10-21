@@ -1,0 +1,12 @@
+import { describe, expect, it } from "vitest";
+import { validateAccountBlocked } from "@/lib/whatsapp";
+
+const ok = { to: "919667335707", account_number: "23434541234", support_number: "1800123456", language: "en" as const };
+
+describe("WhatsApp account-blocked input", () => {
+  it("accepts the partner sample request", () => expect(validateAccountBlocked(ok)).toBeNull());
+  it("rejects a leading +", () => expect(validateAccountBlocked({ ...ok, to: "+919667335707" })).not.toBeNull());
+  it("rejects a short number", () => expect(validateAccountBlocked({ ...ok, to: "96673" })).not.toBeNull());
+  it("accepts Hindi", () => expect(validateAccountBlocked({ ...ok, language: "hi" })).toBeNull());
+  it("rejects other languages", () => expect(validateAccountBlocked({ ...ok, language: "ta" as never })).not.toBeNull());
+});
