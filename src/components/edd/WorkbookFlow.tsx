@@ -98,7 +98,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?:
   const merchant = isMerchant(profile);
   useEffect(() => setCname(normalName(alert.holder)), [alert.holder]);
   const contact: Contact = { phone: normalisePhone(raw), name: cname, lang };
-  const canRun = offline || (validPhone(contact.phone) && cname.trim().length > 0);
+  const canRun = store.loaded && (offline || (validPhone(contact.phone) && cname.trim().length > 0));
   useEffect(() => {
     if (!autoGo || phase !== "idle" || !canRun) return;
     setAutoGo(false);
@@ -149,6 +149,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?:
   };
 
   const start = () => {
+    void storeRef.current.reserveCaseId();
     if (!canRun) return;
     if (raw) sessionStorage.setItem(PHONE_KEY, raw);
     runIdRef.current = `RUN-${Date.now().toString(36)}`;
@@ -333,7 +334,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?:
         <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
           {fromAlert && <Link to="/alerts" search={{ open: fromAlert }} className="text-primary underline">Back to alert {fromAlert}</Link>}
           {fromAlert && offline && running && <span className="text-muted-foreground">Offline demo (no saved number). Add a number for a real call: press New run, enter it, then Run.</span>}
-          {caseId && <span className="ml-auto flex items-center gap-2">Case created: <Button asChild size="sm"><Link to="/cases/$caseId" params={{ caseId }}>Open case {caseId}</Link></Button></span>}
+          {caseId && <span className="ml-auto flex items-center gap-2">Case created: <Button asChild size="sm"><Link to="/cases/$caseId" params={{ caseId: store.currentCaseId(caseId) }}>Open case {store.currentCaseId(caseId)}</Link></Button></span>}
         </div>
       )}
       <FlowLanes events={events} live={busy} />
@@ -370,7 +371,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?:
               <div className="flex items-center justify-between"><span>Negative Database hit</span><Switch checked={negbase} onCheckedChange={setNegbase} disabled={running} /></div>
               <p className="-mt-2 text-xs text-muted-foreground">Pretend this account is already on the Negative Database. Step 1 fails immediately (Red).</p>
               <ContactBox raw={raw} setRaw={setRaw} name={cname} setName={setCname} lang={lang} setLang={setLang} disabled={running} />
-              {!running ? <Button className="w-full" onClick={start} disabled={!canRun}><Play className="mr-2 h-4 w-4" />Run flow</Button> : <Button className="w-full" variant="outline" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />New run</Button>}
+              {!running ? <Button className="w-full" onClick={start} disabled={!canRun}><Play className="mr-2 h-4 w-4" />{store.loaded ? "Run flow" : "Loading demo…"}</Button> : <Button className="w-full" variant="outline" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />New run</Button>}
             </CardContent>
           </Card>
           <Card>

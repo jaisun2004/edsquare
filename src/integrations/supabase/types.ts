@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      demo_case_counter: {
+        Row: {
+          id: number
+          last: number
+        }
+        Insert: {
+          id?: number
+          last?: number
+        }
+        Update: {
+          id?: number
+          last?: number
+        }
+        Relationships: []
+      }
       demo_records: {
         Row: {
           data: Json
@@ -73,7 +88,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      next_demo_case_id: { Args: { floor_n: number }; Returns: number }
+      reset_demo_case_counter: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
