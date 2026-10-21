@@ -282,11 +282,17 @@ export function WorkbookFlow() {
             <Card className="border-primary"><CardContent className="space-y-3 py-4">
               <p className="flex items-center gap-2 text-sm font-semibold">
                 {phase === "voice" ? <Phone className="h-4 w-4" /> : phase === "wa_check" ? <MessageCircle className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
-                {phase === "voice" ? `Step 3 · Voice bot (attempt ${attempts + 1} of ${th.voiceRetries})` : phase === "wa_check" ? "Step 2 · WhatsApp check: verify the transaction before any case" : "Step 4 · Email & mobile app alert"}
+                {phase === "voice" ? `Step 3 · Voice bot (attempt ${attempts + 1} of ${th.voiceRetries})` : phase === "wa_check" ? "Step 2 · Customer questionnaire: verify the transaction before any case" : "Step 4 · Email & mobile app alert"}
                 <Badge variant="outline">{script}</Badge>
               </p>
+              {phase === "wa_check" ? (
+                <QuestionnaireWindow amount={alert.amount} last4={alert.account.slice(-4)} qs={qs} answers={answers} started={answering} busy={busy} flag={flag} colour={flagOutcome(flag, merchant, th)}
+                  points={(q, a) => answerPoints(q, a, profile, alert.type)}
+                  onStart={() => { setAnswering(true); play([{ from: "whatsapp", to: "engine", label: "Customer opened questionnaire", delay: 200, colour: "Green" }]); }}
+                  onNoReply={noResponse} onAnswer={(id, a) => setAnswers({ ...answers, [id]: a })} onSubmit={submitAnswers} />
+              ) : (
               <div className="grid gap-4 md:grid-cols-[auto_1fr]">
-              {phase === "voice" ? <PhoneCall attempt={attempts + 1} retries={th.voiceRetries} connected={answering} transcript={transcript} /> : phase === "wa_check" ? <PhoneWhatsApp messages={waView} /> : <div />}
+              {phase === "voice" ? <PhoneCall attempt={attempts + 1} retries={th.voiceRetries} connected={answering} transcript={transcript} /> : <div />}
               <div className="space-y-3">
 
               {!answering ? (
@@ -315,13 +321,14 @@ export function WorkbookFlow() {
               )}
               </div>
               </div>
+              )}
             </CardContent></Card>
           )}
 
           {phase === "verified" && (
             <Card className="border-success"><CardContent className="space-y-1 py-4 text-sm">
               <p className="font-semibold text-success">Verified by customer: no case created</p>
-              <p className="text-xs text-muted-foreground">The WhatsApp answers matched Core Banking, so the transaction was treated as genuine and the freeze was lifted.</p>
+              <p className="text-xs text-muted-foreground">The questionnaire answers matched Core Banking, so the transaction was treated as genuine and the freeze was lifted.</p>
             </CardContent></Card>
           )}
 

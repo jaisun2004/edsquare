@@ -6,7 +6,7 @@ export const LANES = ["source", "engine", "negdb", "cbs", "dm", "whatsapp", "voi
 export type Lane = (typeof LANES)[number];
 export const LANE_LABEL: Record<Lane, string> = {
   source: "Alert source", engine: "EDSquare engine", negdb: "Negative DB", cbs: "Core Banking", dm: "Decision Manager",
-  whatsapp: "WhatsApp", voice: "Voice bot", cases: "Case Manager", enforce: "Enforcement",
+  whatsapp: "Questionnaire", voice: "Voice bot", cases: "Case Manager", enforce: "Enforcement",
 };
 
 export interface FlowEvent {
@@ -47,7 +47,7 @@ export const caseEvents = (caseId: string, account: string): FlowEvent[] => [
 
 export function whatsappEvents(answers: Record<string, string>, flag: number, colour: Colour, clears: boolean): FlowEvent[] {
   return [
-    { from: "whatsapp", to: "engine", label: `Customer answered ${Object.keys(answers).length} questions on WhatsApp`, delay: 200, payload: answers },
+    { from: "whatsapp", to: "engine", label: `Customer answered ${Object.keys(answers).length} questions in the questionnaire`, delay: 200, payload: answers },
     { from: "engine", to: "dm", label: "Scoring answers against Core Banking", delay: 500, ms: 58 },
     { from: "dm", to: "engine", label: `Response flag ${flag} → ${colour}`, delay: 600, colour },
     clears
