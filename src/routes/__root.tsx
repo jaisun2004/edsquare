@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "@/components/layout/AppShell";
 import { EDDProvider } from "@/lib/edd-store";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthGate } from "@/components/layout/AuthGate";
 
 function NotFoundComponent() {
   return (
@@ -125,10 +126,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <EDDProvider>
+        <AuthGate>
         <AppShell>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
         </AppShell>
+        </AuthGate>
         <Toaster />
       </EDDProvider>
     </QueryClientProvider>
