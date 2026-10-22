@@ -75,6 +75,6 @@ describe("Step 1 rules are each evaluated", () => {
     expect(dataChecks({ ...base, amount: 6000, credits: [6000] }, { ...ranga, avgCrAmtPerDay: 3000 }, false).checks[1]!.fired).toBe(true);
   });
   it("exactly 20% of 2-day credits does not fire rule 3", () => {
-    expect(dataChecks({ ...base, amount: 1000, credits: [1000, 4000] }, { ...ranga, avgCrAmtPerDay: 100000 }, false).checks[2]!.fired).toBe(false);
+    expect(dataChecks({ ...base, amount: 1000, credits: [1000, 1000, 1000, 1000, 1000] }, { ...ranga, avgCrAmtPerDay: 100000 }, false).checks[2]!.fired).toBe(false);
   });
 });
