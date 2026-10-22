@@ -23,7 +23,7 @@ export function ClassicSimulator() {
   const [loaded, setLoaded] = useState<{ n: number; w: ReturnType<typeof toWorkbook> } | null>(null);
   const set = <K extends keyof TxnInput>(k: K, v: TxnInput[K]) => setInput((p) => ({ ...p, [k]: v }));
   const pick = (id: string) => { setScenarioId(id); setInput(scenarios.find((s) => s.id === id)!.input); };
-  const num = (k: "amount" | "counterparties" | "accountAgeDays" | "dormantDays" | "passThroughPct" | "complaints") => (
+  const num = (k: "amount" | "counterparties" | "accountAgeDays" | "dormantDays" | "passThroughPct" | "complaints" | "avgDailyCredit" | "prior2dCredits") => (
     <Input type="number" value={input[k]} disabled={!!loaded} onChange={(e) => set(k, Number(e.target.value) || 0)} />
   );
 
@@ -59,6 +59,8 @@ export function ClassicSimulator() {
           <Field label="Counterparties">{num("counterparties")}</Field>
           <Field label="Account age (days)">{num("accountAgeDays")}</Field>
           <Field label="Pass-through %">{num("passThroughPct")}</Field>
+          <Field label="Average daily credit (Rs)">{num("avgDailyCredit")}</Field>
+          <Field label="Other credits in last 2 days (Rs)">{num("prior2dCredits")}</Field>
           <div className="flex items-center justify-between rounded-md border px-3 py-2"><span>Negative Database hit</span><Switch checked={input.negbaseHit} disabled={!!loaded} onCheckedChange={(v) => set("negbaseHit", v)} /></div>
           <div className="lg:col-span-3 flex items-end">
             {!loaded && <Button onClick={() => setLoaded({ n: Date.now(), w: toWorkbook(input) })}><Play className="mr-2 h-4 w-4" />Raise alert and continue</Button>}
