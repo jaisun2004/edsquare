@@ -64,3 +64,17 @@ describe("Scenario sheet order", () => {
     expect(stepOutcome(8, false).action).toBe("continue_block");
   });
 });
+
+describe("Step 1 rules are each evaluated", () => {
+  it("rule 2 is still checked when the Negative Database hits", () => {
+    const r = dataChecks({ ...base, amount: 9000, credits: [9000] }, { ...ranga, avgCrAmtPerDay: 1000 }, true);
+    expect(r.checks[0]!.status).toBe("fired");
+    expect(r.checks[1]!.status).toBe("also");
+  });
+  it("exactly 2x the average fires rule 2", () => {
+    expect(dataChecks({ ...base, amount: 6000, credits: [6000] }, { ...ranga, avgCrAmtPerDay: 3000 }, false).checks[1]!.fired).toBe(true);
+  });
+  it("exactly 20% of 2-day credits does not fire rule 3", () => {
+    expect(dataChecks({ ...base, amount: 1000, credits: [1000, 1000, 1000, 1000, 1000] }, { ...ranga, avgCrAmtPerDay: 100000 }, false).checks[2]!.fired).toBe(false);
+  });
+});

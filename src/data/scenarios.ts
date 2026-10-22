@@ -16,6 +16,10 @@ export interface TxnInput {
   newDevice: boolean;
   negbaseHit: boolean;
   complaints: number;
+  /** Core banking: average credit per day (Rs). */
+  avgDailyCredit: number;
+  /** Other credits received in the last 2 days, excluding this one (Rs). */
+  prior2dCredits: number;
 }
 
 export interface Scenario {
@@ -30,25 +34,25 @@ export const scenarios: Scenario[] = [
     id: "mule",
     name: "Classic money mule",
     blurb: "New account, rapid pass-through, many counterparties, Negative Database hit.",
-    input: { customer: "Rahul Verma", account: "XXXX4821", upi: "rahul.v88@okbank", amount: 185000, channel: "UPI", counterparties: 34, accountAgeDays: 45, dormantDays: 0, passThroughPct: 94, simSwap: true, newDevice: true, negbaseHit: true, complaints: 3 },
+    input: { customer: "Rahul Verma", account: "XXXX4821", upi: "rahul.v88@okbank", amount: 185000, channel: "UPI", counterparties: 34, accountAgeDays: 45, dormantDays: 0, passThroughPct: 94, simSwap: true, newDevice: true, negbaseHit: true, complaints: 3, avgDailyCredit: 150000, prior2dCredits: 0 },
   },
   {
     id: "scam",
     name: "Scam victim inflow",
     blurb: "Credits linked to victim complaints from an investment scam.",
-    input: { customer: "Sneha Pillai", account: "XXXX7712", upi: "sneha.p@ybl", amount: 92000, channel: "IMPS", counterparties: 18, accountAgeDays: 180, dormantDays: 0, passThroughPct: 72, simSwap: false, newDevice: false, negbaseHit: false, complaints: 2 },
+    input: { customer: "Sneha Pillai", account: "XXXX7712", upi: "sneha.p@ybl", amount: 92000, channel: "IMPS", counterparties: 18, accountAgeDays: 180, dormantDays: 0, passThroughPct: 72, simSwap: false, newDevice: false, negbaseHit: false, complaints: 2, avgDailyCredit: 60000, prior2dCredits: 20000 },
   },
   {
     id: "dormant",
     name: "Dormant account spike",
     blurb: "Long-dormant account suddenly receiving large multi-geo credits.",
-    input: { customer: "Mohan Das", account: "XXXX3390", upi: "mohan.das@paytm", amount: 260000, channel: "NEFT", counterparties: 14, accountAgeDays: 1300, dormantDays: 210, passThroughPct: 78, simSwap: false, newDevice: true, negbaseHit: false, complaints: 0 },
+    input: { customer: "Mohan Das", account: "XXXX3390", upi: "mohan.das@paytm", amount: 260000, channel: "NEFT", counterparties: 14, accountAgeDays: 1300, dormantDays: 210, passThroughPct: 78, simSwap: false, newDevice: true, negbaseHit: false, complaints: 0, avgDailyCredit: 2000, prior2dCredits: 0 },
   },
   {
     id: "clean",
     name: "Clean salary credit",
     blurb: "Regular salary into a long-standing account. Should clear.",
-    input: { customer: "Anita Joshi", account: "XXXX1205", upi: "anita.j@okhdfc", amount: 78000, channel: "NEFT", counterparties: 2, accountAgeDays: 2400, dormantDays: 0, passThroughPct: 10, simSwap: false, newDevice: false, negbaseHit: false, complaints: 0 },
+    input: { customer: "Anita Joshi", account: "XXXX1205", upi: "anita.j@okhdfc", amount: 78000, channel: "NEFT", counterparties: 2, accountAgeDays: 2400, dormantDays: 0, passThroughPct: 10, simSwap: false, newDevice: false, negbaseHit: false, complaints: 0, avgDailyCredit: 78000, prior2dCredits: 400000 },
   },
 ];
 
@@ -93,11 +97,12 @@ export function toAttrs(t: TxnInput): AttrMap {
 
 /** Turn a composed transaction into a Model alert + core banking profile so it runs through the sheet flow (edd-flow). */
 export function toWorkbook(t: TxnInput): { alert: WorkbookAlert; profile: CbsProfile; negbase: boolean } {
-  const n = t.counterparties <= 2 ? 1 : Math.min(t.counterparties, 5);
-  const credits = Array.from({ length: n }, (_, i) => Math.round(t.amount / n) + (i === 0 ? t.amount % n : 0));
+  // Earlier credits are split into parts no bigger than this transaction, so rule 3 measures this transaction's share.
+  const parts = t.prior2dCredits > 0 ? Math.ceil(t.prior2dCredits / Math.max(t.amount, 1)) : 0;
+  const credits = [t.amount, ...Array.from({ length: parts }, (_, i) => Math.floor(t.prior2dCredits / parts) + (i === 0 ? t.prior2dCredits % parts : 0))];
   const debits = t.passThroughPct >= 50 ? [Math.round((t.amount * t.passThroughPct) / 100)] : [];
   const salaried = t.accountAgeDays > 2000;
-  const avgCr = salaried ? t.amount : t.dormantDays > 90 ? 200 : 1000;
+  const avgCr = t.avgDailyCredit;
   const alert: WorkbookAlert = {
     id: `TXN-${t.account}`,
     type: "Model",

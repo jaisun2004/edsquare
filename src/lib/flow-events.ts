@@ -34,7 +34,7 @@ export function intakeEvents(alert: WorkbookAlert, profile: CbsProfile, negbaseH
     { from: "cbs", to: "engine", label: `Profile: ${profile.accountType}, avg daily credit ${inr(profile.avgCrAmtPerDay)}, PIN ${profile.pincode}, risk ${profile.risk}`, delay: 800, payload: { ...profile } },
     { from: "engine", to: "dm", label: "Evaluating Step 1 data checks", delay: 600, ms: 64 },
   ];
-  for (const c of checks) ev.push({ from: "dm", to: "dm", label: `${c.fired ? "Fired" : "Pass"}: ${c.label}`, delay: 500, colour: c.fired ? "Red" : "Green", payload: { detail: c.detail } });
+  for (const c of checks) ev.push({ from: "dm", to: "dm", label: `${c.fired ? "Fired" : c.status === "also" ? "Also true" : "Pass"}: ${c.label}`, delay: 500, colour: c.fired ? "Red" : c.status === "also" ? "Amber" : "Green", payload: { detail: c.detail } });
   ev.push({ from: "dm", to: "engine", label: `Step 1 outcome: ${outcome}`, delay: 600, colour: outcome });
   return ev;
 }

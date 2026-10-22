@@ -157,7 +157,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
     const id = fromAlert ?? `AL-${alert.type}-${Date.now().toString(36).toUpperCase()}`;
     store.injectAlert(
       { id, source: alert.type === "I4C" ? "External Intelligence" : "Risk Model", account: alert.account, upi: "—", customer: alert.holder, trigger: `${alert.type === "I4C" ? "I4C complaint" : "Model alert"}: ${alert.reason} (Rs ${alert.amount.toLocaleString("en-IN")})`, receivedAt: new Date().toISOString(), preliminarySignal: "H", status: "New" },
-      toAttrs({ customer: alert.holder, account: alert.account, upi: "", amount: alert.amount, channel: "IMPS", counterparties: alert.credits.length + alert.debits.length, accountAgeDays: profile.vintageMonths * 30, dormantDays: 0, passThroughPct: alert.debits.length ? 80 : 20, simSwap: false, newDevice: false, negbaseHit: negbase, complaints: alert.type === "I4C" ? 1 : 0 }),
+      toAttrs({ customer: alert.holder, account: alert.account, upi: "", amount: alert.amount, channel: "IMPS", counterparties: alert.credits.length + alert.debits.length, accountAgeDays: profile.vintageMonths * 30, dormantDays: 0, passThroughPct: alert.debits.length ? 80 : 20, simSwap: false, newDevice: false, negbaseHit: negbase, complaints: alert.type === "I4C" ? 1 : 0, avgDailyCredit: profile.avgCrAmtPerDay, prior2dCredits: 0 }),
     );
     alertIdRef.current = id;
     setPhase("checks");
@@ -170,7 +170,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
     play(intakeEvents(alert, profile, negbase, r.checks, r.outcome), () => {
       setChecks(r.checks);
       const fired = r.checks.find((c) => c.fired);
-      for (const c of r.checks) record(entry("Data check", `Check: ${c.label}`, `${c.fired ? "Fired" : "Passed"}: ${c.detail}`));
+      for (const c of r.checks) record(entry("Data check", `Check: ${c.label}`, `${c.fired ? "Fired" : c.status === "also" ? "Also true" : "Passed"}: ${c.detail}`));
       record(entry("Data check", "Negative Database lookup", negbase ? "Hit: account found on the Negative Database" : "No match on the Negative Database"));
       add("Step 1 Data checks", r.outcome, fired ? `${fired.label}: ${fired.detail}.` : "No check fired.", undefined);
       if (r.outcome === "Red") {
@@ -402,7 +402,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
               {checks.map((c) => (
                 <div key={c.id} className="flex items-start justify-between gap-2 text-xs">
                   <span><b>{c.label}</b><br /><span className="text-muted-foreground">{c.detail}</span></span>
-                  <Badge variant="outline" className={c.fired ? colourCls.Red : ""}>{c.fired ? "Fired" : "Pass"}</Badge>
+                  <Badge variant="outline" className={c.fired ? colourCls.Red : c.status === "also" ? colourCls.Amber : ""}>{c.fired ? "Fired" : c.status === "also" ? "Also true" : "Pass"}</Badge>
                 </div>
               ))}
               {phase === "human" && !log.some((l) => !l.step.startsWith("Step 1") && !l.step.startsWith("WhatsApp block")) && (
