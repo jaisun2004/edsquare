@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { scenarios, toWorkbook, type TxnInput } from "@/data/scenarios";
 import { WorkbookFlow } from "@/components/edd/WorkbookFlow";
@@ -20,6 +19,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export function ClassicSimulator() {
+  const { negbase } = useEDD();
   const [scenarioId, setScenarioId] = useState("mule");
   const [input, setInput] = useState<TxnInput>(scenarios[0]!.input);
   const [loaded, setLoaded] = useState<{ n: number; w: ReturnType<typeof toWorkbook> } | null>(null);

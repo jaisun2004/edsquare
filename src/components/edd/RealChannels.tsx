@@ -30,13 +30,15 @@ function useElapsed(active: boolean) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+const SOON_LANGS = ["Bengali", "Telugu", "Marathi", "Tamil", "Gujarati", "Kannada", "Malayalam", "Odia", "Punjabi", "Assamese"];
+
 /** Customer contact taken once before the run; used by the voice call and WhatsApp. */
 export function ContactBox({ raw, setRaw, name, setName, lang, setLang, disabled, compact }: { raw: string; setRaw: (v: string) => void; name: string; setName: (v: string) => void; lang: Contact["lang"]; setLang: (v: Contact["lang"]) => void; disabled?: boolean; compact?: boolean }) {
   const phone = normalisePhone(raw);
   const hint = !raw ? null : validPhone(phone)
     ? <p className="text-[11px] text-muted-foreground">Will use {prettyPhone(phone)}{phone !== raw.replace(/\D/g, "") ? " (country code added)" : ""}</p>
     : <p className="text-[11px] text-destructive">Enter a 10-digit mobile number</p>;
-  const langSel = <Select value={lang} onValueChange={(v) => setLang(v as Contact["lang"])} disabled={!!disabled}><SelectTrigger className={compact ? "h-8 w-28" : ""}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ENGLISH">English</SelectItem><SelectItem value="HINDI">Hindi</SelectItem></SelectContent></Select>;
+  const langSel = <Select value={lang} onValueChange={(v) => setLang(v as Contact["lang"])} disabled={!!disabled}><SelectTrigger className={compact ? "h-8 w-28" : ""}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ENGLISH">English</SelectItem><SelectItem value="HINDI">Hindi</SelectItem>{SOON_LANGS.map((l) => <SelectItem key={l} value={l} disabled>{l} (coming soon)</SelectItem>)}</SelectContent></Select>;
   if (compact) return (
     <div className="flex items-center gap-2">
       <Input className="h-8 w-40" value={raw} onChange={(e) => setRaw(e.target.value.replace(/[^\d+ ]/g, ""))} placeholder="Customer mobile" disabled={disabled} />
