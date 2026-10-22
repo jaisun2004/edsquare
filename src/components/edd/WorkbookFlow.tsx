@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cbsProfiles, greeting, questionsFor, workbookAlerts } from "@/data/workbook";
+import { cbsProfiles, greeting, questionsFor, workbookAlerts, type CbsProfile, type WorkbookAlert } from "@/data/workbook";
 import { toAttrs } from "@/data/scenarios";
 import { afterVoice, answerPoints, dataChecks, defaultThresholds, stepOutcome, SHEET_STEPS, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
 import { useEDD, type FlowLogEntry } from "@/lib/edd-store";
@@ -35,13 +35,13 @@ const colourCls: Record<Colour, string> = {
   Manual: "border-primary text-primary",
 };
 
-export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?: string | undefined; fromAlert?: string | undefined; auto?: boolean | undefined } = {}) {
+export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initialAlert?: string | undefined; fromAlert?: string | undefined; auto?: boolean | undefined; custom?: { alert: WorkbookAlert; profile: CbsProfile; negbase: boolean } | undefined } = {}) {
   const store = useEDD();
   const storeRef = useRef(store);
   storeRef.current = store;
   const summarise = useServerFn(summariseFlowCase);
   const [alertId, setAlertId] = useState(workbookAlerts.some((a) => a.id === initialAlert) ? initialAlert! : workbookAlerts[0]!.id);
-  const [negbase, setNegbase] = useState(false);
+  const [negbase, setNegbase] = useState(custom?.negbase ?? false);
   const [th, setTh] = useState<Thresholds>(defaultThresholds);
   const [phase, setPhase] = useState<Phase>("idle");
   const [caseId, setCaseId] = useState<string>();
@@ -89,8 +89,8 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?:
     timers.current.push(setTimeout(() => { setBusy(false); then?.(); }, t + 200 / speed));
   };
 
-  const alert = workbookAlerts.find((a) => a.id === alertId)!;
-  const profile = cbsProfiles.find((p) => p.account === alert.account)!;
+  const alert = custom?.alert ?? workbookAlerts.find((a) => a.id === alertId)!;
+  const profile = custom?.profile ?? cbsProfiles.find((p) => p.account === alert.account)!;
   const channel = phase === "voice" ? "voice" : "bitly";
   const script = scriptFor(alert, channel);
   const qs = questionsFor(script, alert.amount, alert.date, alert.credits.reduce((a, b) => a + b, 0), alert.debits.reduce((a, b) => a + b, 0));
@@ -353,12 +353,12 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto }: { initialAlert?:
       <div className={`grid gap-4 ${presenter ? "lg:grid-cols-[1fr_360px]" : "lg:grid-cols-[340px_1fr_360px]"}`}>
         <div className={`space-y-4 ${presenter ? "hidden" : ""}`}>
           <Card>
-            <CardHeader><CardTitle className="text-base">Sample alert</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{custom ? "Transaction alert" : "Sample alert"}</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <Select value={alertId} onValueChange={setAlertId} disabled={running}>
+              {!custom && <Select value={alertId} onValueChange={setAlertId} disabled={running}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{workbookAlerts.map((a) => <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>)}</SelectContent>
-              </Select>
+              </Select>}
               <div className="space-y-1 rounded-md border p-3 text-xs">
                 <p><b>{alert.type === "I4C" ? "I4C complaint" : "Model alert"}</b>: {alert.reason}</p>
                 <p>A/c {alert.account} · {alert.holder} ({alert.gender})</p>
