@@ -132,6 +132,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Button variant="outline" size="sm" onClick={resetDemo}>
               <RotateCcw className="mr-1 size-3.5" /> Reset demo
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => import("@/integrations/supabase/client").then(({ supabase }) => supabase.auth.signOut())}>
+              Sign out
+            </Button>
           </div>
         </header>
         <main className="min-w-0 flex-1 p-6">{children}</main>
