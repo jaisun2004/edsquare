@@ -190,7 +190,7 @@ export function RealWhatsAppPanel(p: Common) {
     if (!validPhone(phone) || used >= MAX) return;
     setErr(undefined); setStage("sending"); setUsed((n) => n + 1);
     try {
-      const { code } = await create({ data: { header: { bank: BANK, amount: p.alert.amount, last4: p.alert.account.slice(-4), name: normalName(p.alert.holder) }, questions: p.qs.map(toCustomer) } });
+      const { token, code } = await create({ data: { header: { bank: BANK, amount: p.alert.amount, last4: p.alert.account.slice(-4), name: normalName(p.alert.holder) }, questions: p.qs.map(toCustomer) } });
       const url = `${questionnaireOrigin()}/s/${code}`;
       setLink(url);
       // 1) Approved template: reaches any customer, even without a recent chat.
