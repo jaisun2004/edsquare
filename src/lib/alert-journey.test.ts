@@ -8,6 +8,21 @@ const run = (p: Partial<DemoRun> = {}): DemoRun => ({ id: "R", alertId: "AL-1", 
 const enf = (action: "Block" | "Unblock") => ({ caseId: "C1", action, decidedBy: "X" }) as EnforcementEntry;
 const kase = { id: "C1" } as EDDCase;
 
+describe("system block", () => {
+  it("System blocked with Step 1 reason when engine opened a case with no contact", () => {
+    const j = alertJourney(alert({ caseId: "C1" }), [kase], [], [run({ caseId: "C1", colour: "Red", outcome: "Negative Database hit" })]);
+    expect(j.result).toBe("System blocked");
+    expect(j.blockReason).toBe("Failed data checks at Step 1: Negative Database hit");
+  });
+  it("no-response reason for Manual runs", () => {
+    const j = alertJourney(alert({ caseId: "C1" }), [kase], [], [run({ caseId: "C1", colour: "Manual", callAttempts: 3 })]);
+    expect(j.blockReason).toBe("No customer response on call, WhatsApp, email and app alert");
+  });
+  it("human Block stays Blocked", () => {
+    expect(alertJourney(alert({ caseId: "C1" }), [kase], [enf("Block")], [run({ caseId: "C1", colour: "Red" })]).result).toBe("Blocked");
+  });
+});
+
 describe("alertJourney result", () => {
   it("New when nothing happened", () => expect(alertJourney(alert(), [], [], []).result).toBe("New"));
   it("Dismissed", () => expect(alertJourney(alert({ status: "Dismissed" }), [], [], []).result).toBe("Dismissed"));
