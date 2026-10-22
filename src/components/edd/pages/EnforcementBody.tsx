@@ -10,11 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { useEDD } from "@/lib/edd-store";
+import { BlockReason, ResultBadge, useJourneys } from "@/components/edd/Journey";
 
 
 export function EnforcementBody() {
   const { enforcement } = useEDD();
   const [action, setAction] = useState("all");
+  const systemBlocked = useJourneys().filter((x) => x.j.result === "System blocked");
   const rows = enforcement.filter((e) => action === "all" || e.action === action);
 
   return (
@@ -38,6 +40,19 @@ export function EnforcementBody() {
           </>
         }
       />
+
+      <Card className="mb-6 border-destructive/40">
+        <CardContent className="space-y-2 py-4">
+          <p className="text-sm font-semibold">System blocked transactions ({systemBlocked.length})</p>
+          {systemBlocked.length === 0 && <p className="text-sm text-muted-foreground">None right now.</p>}
+          {systemBlocked.map(({ alert: a, j }) => (
+            <div key={a.id} className="flex flex-wrap items-start justify-between gap-2 rounded-md border border-border p-3 text-sm">
+              <div className="min-w-0"><p className="font-medium">{a.customer} · {a.account} <span className="text-xs text-muted-foreground">· {a.id}</span></p><BlockReason j={j} /></div>
+              <div className="flex items-center gap-2"><ResultBadge r={j.result} />{j.caseItem && <Link to="/cases/$caseId" params={{ caseId: j.caseItem.id }} className="text-xs text-primary hover:underline">{j.caseItem.id}</Link>}<span className="text-xs text-muted-foreground">By System</span></div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-0">

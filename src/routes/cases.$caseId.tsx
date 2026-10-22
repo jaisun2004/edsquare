@@ -16,9 +16,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useEDD } from "@/lib/edd-store";
 import { CaseCalls, CaseTimeline } from "@/components/edd/CaseRecords";
 import { can } from "@/lib/roles";
-import { JourneyStrip } from "@/components/edd/Journey";
+import { BlockReason, ResultBadge, JourneyStrip } from "@/components/edd/Journey";
 import { alertJourney } from "@/lib/alert-journey";
-import { DemoRunSummary } from "@/components/edd/DemoRuns";
+import { EngagementSummary } from "@/components/edd/DemoRuns";
 import { CaseOutreach, CaseStepSummary } from "@/components/edd/CaseOutreach";
 import type { Channel, Recommendation } from "@/data/edd";
 
@@ -91,6 +91,9 @@ function CaseDetailPage() {
       </div>
 
       {(() => { const src = alerts.find((a) => a.caseId === item.id); return src ? <p className="text-sm text-muted-foreground">From alert <Link to="/alerts" search={{ open: src.id }} className="font-medium text-primary underline">{src.id}</Link> · {src.trigger}</p> : null; })()}
+      {journey?.result === "System blocked" && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-destructive bg-destructive/10 p-3"><ResultBadge r={journey.result} /><BlockReason j={journey} /></div>
+      )}
       {journey && <JourneyStrip j={journey} />}
 
       <Card className="border-primary/30 bg-primary/5">
@@ -126,7 +129,7 @@ function CaseDetailPage() {
 
         <TabsContent value="overview" className="mt-4 grid gap-4 lg:grid-cols-2">
           <CaseStepSummary item={item} run={run} />
-          {run && <DemoRunSummary run={run} />}
+          {run && <EngagementSummary run={run} />}
           <Card>
             <CardHeader><CardTitle className="text-sm">Risk score</CardTitle></CardHeader>
             <CardContent>

@@ -1,3 +1,5 @@
+import { ShieldAlert } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -15,16 +17,22 @@ const dot: Record<StepState, string> = {
 export const resultCls: Record<AlertResult, string> = {
   New: "border-primary/40 text-primary",
   "Case open": "border-warning text-warning",
+  "System blocked": "border-destructive bg-destructive text-destructive-foreground",
   Blocked: "border-destructive bg-destructive/10 text-destructive",
   Unblocked: "border-success bg-success/10 text-success",
   Verified: "border-success bg-success/10 text-success",
   Dismissed: "border-border text-muted-foreground",
 };
 export const resultLabel: Record<AlertResult, string> = {
-  New: "New", "Case open": "Case open", Blocked: "Blocked", Unblocked: "Unblocked", Verified: "Unblocked: verified", Dismissed: "Dismissed",
+  New: "New", "Case open": "Case open", "System blocked": "System blocked", Blocked: "Blocked after review", Unblocked: "Unblocked", Verified: "Unblocked: verified", Dismissed: "Dismissed",
 };
 
-export const ResultBadge = ({ r }: { r: AlertResult }) => <Badge variant="outline" className={resultCls[r]}>{resultLabel[r]}</Badge>;
+export const ResultBadge = ({ r }: { r: AlertResult }) => (
+  <Badge variant="outline" className={cn("gap-1", resultCls[r])}>{r === "System blocked" && <ShieldAlert className="size-3" />}{resultLabel[r]}</Badge>
+);
+
+export const BlockReason = ({ j, className }: { j: Journey; className?: string }) =>
+  j.blockReason ? <p className={cn("text-xs text-destructive", className)}>Reason: {j.blockReason}</p> : null;
 
 export function JourneyDots({ j, labels = false }: { j: Journey; labels?: boolean }) {
   return (
@@ -67,14 +75,15 @@ export function AlertFunnel({ onPick, active }: { onPick?: (r: AlertResult | "al
     { key: "New", label: "Awaiting triage", value: n.New },
     { key: "Verified", label: "Cleared by customer", value: n.Verified },
     { key: "Case open", label: "Case open", value: n["Case open"] },
-    { key: "Blocked", label: "Blocked", value: n.Blocked },
+    { key: "System blocked", label: "System blocked", value: n["System blocked"] },
+    { key: "Blocked", label: "Blocked after review", value: n.Blocked },
     { key: "Unblocked", label: "Unblocked", value: n.Unblocked },
     { key: "Dismissed", label: "Dismissed", value: n.Dismissed },
   ];
   return (
     <Card>
       <CardHeader className="pb-2"><CardTitle className="text-sm">Alert to outcome</CardTitle></CardHeader>
-      <CardContent className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+      <CardContent className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
         {steps.map((s) => (
           <button
             key={s.key}

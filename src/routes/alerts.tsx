@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { PageHeader } from "@/components/layout/AppShell";
 import { RiskChip, formatDateTime, timeAgo } from "@/components/edd/chips";
-import { AlertFunnel, JourneyDots, JourneyStrip, ResultBadge, useJourneys } from "@/components/edd/Journey";
+import { AlertFunnel, JourneyDots, JourneyStrip, ResultBadge, BlockReason, useJourneys } from "@/components/edd/Journey";
 import { sheetAlertFor } from "@/data/sample-scenarios";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,13 +89,12 @@ function AlertsPage() {
                   <TableCell>
                     <p className="font-medium">{a.id}</p>
                     <p className="text-xs text-muted-foreground">{a.source} · {timeAgo(a.receivedAt)}</p>
-                    {j.run && <Badge variant="secondary" className="mt-1">{j.run.sample ? "Sample scenario" : "Live demo"}</Badge>}
                   </TableCell>
                   <TableCell><p>{a.customer}</p><p className="text-xs text-muted-foreground">{a.account}</p></TableCell>
                   <TableCell className="max-w-[240px] text-sm text-muted-foreground">{a.trigger}</TableCell>
                   <TableCell><RiskChip grade={a.preliminarySignal} /></TableCell>
                   <TableCell><JourneyDots j={j} /></TableCell>
-                  <TableCell><ResultBadge r={j.result} /></TableCell>
+                  <TableCell className="max-w-[220px]"><ResultBadge r={j.result} /><BlockReason j={j} className="mt-1 line-clamp-2" /></TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>{j.caseItem ? <Link to="/cases/$caseId" params={{ caseId: j.caseItem.id }} className="font-medium text-primary underline">{j.caseItem.id}</Link> : <span className="text-muted-foreground">—</span>}</TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     {j.result === "New" ? (
@@ -130,13 +129,19 @@ function AlertsPage() {
                   <p className="text-muted-foreground">{open.alert.source} · received {formatDateTime(open.alert.receivedAt)}</p>
                   <p className="mt-2">{open.alert.trigger}</p>
                 </div>
+                {open.j.result === "System blocked" && (
+                  <div className="rounded-md border border-destructive bg-destructive/10 p-3">
+                    <p className="font-medium text-destructive">Transaction blocked by the system</p>
+                    <BlockReason j={open.j} />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Journey</p>
                   <div className="[&>div]:grid-cols-1"><JourneyStrip j={open.j} /></div>
                 </div>
                 {open.j.run && (
                   <div className="rounded-md border border-border p-3">
-                    <p className="font-medium">{open.j.run.sample ? "Sample scenario" : "Live demo run"}</p>
+                    <p className="font-medium">Engagement result</p>
                     <p className="text-muted-foreground">{open.j.run.outcome || "—"}</p>
                     {open.j.run.recordingUrl && <audio controls src={open.j.run.recordingUrl} className="mt-2 h-8 w-full" />}
                   </div>

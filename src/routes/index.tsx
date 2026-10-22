@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { inflowSeries, teamWorkload } from "@/data/edd";
-import { AlertFunnel } from "@/components/edd/Journey";
-import { LatestDemoRuns } from "@/components/edd/DemoRuns";
+import { AlertFunnel, useJourneys } from "@/components/edd/Journey";
+import { LatestCases } from "@/components/edd/DemoRuns";
 import { useEDD } from "@/lib/edd-store";
 import { roleLabels } from "@/lib/roles";
 
@@ -33,6 +33,7 @@ const RISK_COLORS: Record<string, string> = {
 
 function DashboardPage() {
   const { cases, alerts, enforcement, role, actor } = useEDD();
+  const js = useJourneys();
 
   const open = cases.filter((c) => c.stage !== "Closed");
   const mine = open.filter((c) => c.assignee === actor);
@@ -42,7 +43,8 @@ function DashboardPage() {
     { label: "Open cases", value: open.length },
     { label: "Pending my action", value: mine.length },
     { label: "New alerts", value: alerts.filter((a) => a.status === "New").length },
-    { label: "Blocked accounts", value: enforcement.filter((e) => e.action === "Block").length },
+    { label: "System blocked", value: js.filter((x) => x.j.result === "System blocked").length },
+    { label: "Blocked after review", value: enforcement.filter((e) => e.action === "Block").length },
     { label: "Cleared accounts", value: enforcement.filter((e) => e.action === "Unblock").length },
     { label: "SLA breaches", value: breaches.length },
   ];
@@ -69,7 +71,7 @@ function DashboardPage() {
       />
       <div className="mb-6"><AlertFunnel /></div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
         {kpis.map((k) => (
           <Card key={k.label}>
             <CardContent className="py-5">
@@ -175,7 +177,7 @@ function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-      <div className="mt-6"><LatestDemoRuns /></div>
+      <div className="mt-6"><LatestCases /></div>
     </div>
   );
 }

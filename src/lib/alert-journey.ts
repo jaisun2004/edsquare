@@ -2,11 +2,11 @@ import type { Alert, EDDCase, EnforcementEntry } from "@/data/edd";
 import type { DemoRun } from "@/lib/demo-runs";
 
 export type StepState = "red" | "amber" | "green" | "skip" | "pending";
-export type AlertResult = "New" | "Case open" | "Blocked" | "Unblocked" | "Verified" | "Dismissed";
-export const RESULTS: AlertResult[] = ["New", "Case open", "Blocked", "Unblocked", "Verified", "Dismissed"];
+export type AlertResult = "New" | "Case open" | "System blocked" | "Blocked" | "Unblocked" | "Verified" | "Dismissed";
+export const RESULTS: AlertResult[] = ["New", "Case open", "System blocked", "Blocked", "Unblocked", "Verified", "Dismissed"];
 
 export interface JourneyStep { key: "checks" | "voice" | "whatsapp" | "case" | "decision"; label: string; state: StepState; detail: string }
-export interface Journey { result: AlertResult; steps: JourneyStep[]; run?: DemoRun | undefined; caseItem?: EDDCase | undefined; enforcement?: EnforcementEntry | undefined }
+export interface Journey { result: AlertResult; steps: JourneyStep[]; run?: DemoRun | undefined; caseItem?: EDDCase | undefined; enforcement?: EnforcementEntry | undefined; blockReason?: string | undefined }
 
 /** Derives what happened to an alert from its case, enforcement entries and demo run. */
 export function alertJourney(alert: Alert, cases: EDDCase[], enforcement: EnforcementEntry[], runs: DemoRun[]): Journey {
@@ -20,6 +20,7 @@ export function alertJourney(alert: Alert, cases: EDDCase[], enforcement: Enforc
   if (alert.status === "Dismissed") result = "Dismissed";
   else if (decision === "Block") result = "Blocked";
   else if (decision === "Unblock") result = "Unblocked";
+  else if (caseId && run && run.colour !== "Green") result = "System blocked";
   else if (caseId) result = "Case open";
   else if (run && run.colour === "Green") result = "Verified";
   else result = "New";
@@ -49,7 +50,18 @@ export function alertJourney(alert: Alert, cases: EDDCase[], enforcement: Enforc
       detail: decision ? `${decision === "Block" ? "Blocked" : "Unblocked"}${enf ? ` by ${enf.decidedBy}` : ""}` : result === "Verified" ? "Verified by customer, freeze lifted" : result === "Dismissed" ? "Dismissed" : "Awaiting decision",
     },
   ];
-  return { result, steps, run, caseItem, enforcement: enf };
+  const blockReason = result === "System blocked" && run ? systemBlockReason(run) : result === "Blocked" ? (enf?.reason ?? caseItem?.decision?.reason) : undefined;
+  return { result, steps, run, caseItem, enforcement: enf, blockReason };
+}
+
+/** Why the engine held the account blocked (no human decision yet). */
+export function systemBlockReason(run: DemoRun): string {
+  const engaged = run.callAttempts > 0 || run.whatsappSent;
+  const base = !engaged ? "Failed data checks at Step 1"
+    : run.colour === "Manual" ? "No customer response on call, WhatsApp, email and app alert"
+    : run.colour === "Red" ? "High-risk answers during customer verification"
+    : "Medium-risk answers, needs human review";
+  return run.outcome ? `${base}: ${run.outcome}` : base;
 }
 
 export function countResults(journeys: Journey[]): Record<AlertResult, number> {

@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/layout/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { inflowSeries, STAGES } from "@/data/edd";
 import { AlertFunnel } from "@/components/edd/Journey";
-import { DemoRunStats, LatestDemoRuns } from "@/components/edd/DemoRuns";
+import { CaseResultStats, LatestCases } from "@/components/edd/DemoRuns";
 import { useEDD } from "@/lib/edd-store";
 
 
@@ -31,8 +31,8 @@ export function ReportsBody() {
 
       <div className="mb-6"><AlertFunnel /></div>
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
-        <DemoRunStats />
-        <LatestDemoRuns />
+        <CaseResultStats />
+        <LatestCases />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
