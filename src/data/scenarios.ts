@@ -93,11 +93,11 @@ export function toAttrs(t: TxnInput): AttrMap {
 
 /** Turn a composed transaction into a Model alert + core banking profile so it runs through the sheet flow (edd-flow). */
 export function toWorkbook(t: TxnInput): { alert: WorkbookAlert; profile: CbsProfile; negbase: boolean } {
-  const n = Math.max(1, Math.min(t.counterparties, 5));
+  const n = t.counterparties <= 2 ? 1 : Math.min(t.counterparties, 5);
   const credits = Array.from({ length: n }, (_, i) => Math.round(t.amount / n) + (i === 0 ? t.amount % n : 0));
   const debits = t.passThroughPct >= 50 ? [Math.round((t.amount * t.passThroughPct) / 100)] : [];
   const salaried = t.accountAgeDays > 2000;
-  const avgCr = salaried ? Math.round(t.amount / 2) : t.dormantDays > 90 ? 200 : 1000;
+  const avgCr = salaried ? t.amount : t.dormantDays > 90 ? 200 : 1000;
   const alert: WorkbookAlert = {
     id: `TXN-${t.account}`,
     type: "Model",
