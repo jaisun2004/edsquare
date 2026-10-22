@@ -10,6 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { scenarios, toWorkbook, type TxnInput } from "@/data/scenarios";
 import { WorkbookFlow } from "@/components/edd/WorkbookFlow";
+import { negbaseLookup } from "@/lib/edd-flow";
+import { useEDD } from "@/lib/edd-store";
 
 const STAGES = ["Transaction", "Alert raised", "Data checks", "AI voice call", "WhatsApp questionnaire", "Email & app alert", "Case / manual queue", "Human decision", "Enforcement"];
 
@@ -61,9 +63,8 @@ export function ClassicSimulator() {
           <Field label="Pass-through %">{num("passThroughPct")}</Field>
           <Field label="Average daily credit (Rs)">{num("avgDailyCredit")}</Field>
           <Field label="Other credits in last 2 days (Rs)">{num("prior2dCredits")}</Field>
-          <div className="flex items-center justify-between rounded-md border px-3 py-2"><span>Negative Database hit</span><Switch checked={input.negbaseHit} disabled={!!loaded} onCheckedChange={(v) => set("negbaseHit", v)} /></div>
           <div className="lg:col-span-3 flex items-end">
-            {!loaded && <Button onClick={() => setLoaded({ n: Date.now(), w: toWorkbook(input) })}><Play className="mr-2 h-4 w-4" />Raise alert and continue</Button>}
+            {!loaded && <Button onClick={() => setLoaded({ n: Date.now(), w: toWorkbook({ ...input, negbaseHit: negbaseLookup(negbase, { account: input.account, upi: input.upi }).hit }) })}><Play className="mr-2 h-4 w-4" />Raise alert and continue</Button>}
             {loaded && <p className="text-xs text-muted-foreground">Alert raised. Enter the customer's mobile below and press Run flow for a real AI call and WhatsApp.</p>}
           </div>
         </CardContent>
