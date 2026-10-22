@@ -57,6 +57,7 @@ export type Database = {
           header: Json
           id: string
           questions: Json
+          short_code: string | null
           status: string
           submitted_at: string | null
           token: string
@@ -67,6 +68,7 @@ export type Database = {
           header?: Json
           id?: string
           questions?: Json
+          short_code?: string | null
           status?: string
           submitted_at?: string | null
           token: string
@@ -77,6 +79,7 @@ export type Database = {
           header?: Json
           id?: string
           questions?: Json
+          short_code?: string | null
           status?: string
           submitted_at?: string | null
           token?: string
