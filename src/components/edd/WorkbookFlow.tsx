@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cbsProfiles, greeting, questionsFor, workbookAlerts, type CbsProfile, type WorkbookAlert } from "@/data/workbook";
 import { toAttrs } from "@/data/scenarios";
-import { afterVoice, answerPoints, dataChecks, defaultThresholds, stepOutcome, SHEET_STEPS, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
+import { negbaseLookup, afterVoice, answerPoints, dataChecks, defaultThresholds, stepOutcome, SHEET_STEPS, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
 import { useEDD, type FlowLogEntry } from "@/lib/edd-store";
 import type { CallRecord, QuestionnaireRecord, TimelineEntry } from "@/data/edd";
 import { summariseFlowCase } from "@/lib/rule-ai.functions";
@@ -35,13 +35,12 @@ const colourCls: Record<Colour, string> = {
   Manual: "border-primary text-primary",
 };
 
-export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initialAlert?: string | undefined; fromAlert?: string | undefined; auto?: boolean | undefined; custom?: { alert: WorkbookAlert; profile: CbsProfile; negbase: boolean } | undefined } = {}) {
+export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initialAlert?: string | undefined; fromAlert?: string | undefined; auto?: boolean | undefined; custom?: { alert: WorkbookAlert; profile: CbsProfile; negbase: boolean; upi?: string } | undefined } = {}) {
   const store = useEDD();
   const storeRef = useRef(store);
   storeRef.current = store;
   const summarise = useServerFn(summariseFlowCase);
   const [alertId, setAlertId] = useState(workbookAlerts.some((a) => a.id === initialAlert) ? initialAlert! : workbookAlerts[0]!.id);
-  const [negbase, setNegbase] = useState(custom?.negbase ?? false);
   const [th, setTh] = useState<Thresholds>(defaultThresholds);
   const [phase, setPhase] = useState<Phase>("idle");
   const [caseId, setCaseId] = useState<string>();
@@ -91,6 +90,9 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
 
   const alert = custom?.alert ?? workbookAlerts.find((a) => a.id === alertId)!;
   const profile = custom?.profile ?? cbsProfiles.find((p) => p.account === alert.account)!;
+  const nb = negbaseLookup(store.negbase, { account: alert.account, upi: custom?.upi, mobile: raw ? normalisePhone(raw) : undefined });
+  const negbase = nb.hit;
+  const nbText = nb.match ? `Match: ${nb.matched} found as ${nb.match.identifier} (${nb.match.category}, ${nb.match.source}, ${nb.match.id})` : `No match for ${nb.searched.join(" / ")}`;
   const channel = phase === "voice" ? "voice" : "bitly";
   const script = scriptFor(alert, channel);
   const qs = questionsFor(script, alert.amount, alert.date, alert.credits.reduce((a, b) => a + b, 0), alert.debits.reduce((a, b) => a + b, 0));
@@ -171,10 +173,10 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
       setChecks(r.checks);
       const fired = r.checks.find((c) => c.fired);
       for (const c of r.checks) record(entry("Data check", `Check: ${c.label}`, `${c.fired ? "Fired" : c.status === "also" ? "Also true" : "Passed"}: ${c.detail}`));
-      record(entry("Data check", "Negative Database lookup", negbase ? "Hit: account found on the Negative Database" : "No match on the Negative Database"));
+      record(entry("Data check", "Negative Database lookup", nbText));
       add("Step 1 Data checks", r.outcome, fired ? `${fired.label}: ${fired.detail}.` : "No check fired.", undefined);
       if (r.outcome === "Red") {
-        const cid = storeRef.current.applyTriage(triageRef.current!, "Further Investigation", `${alert.type} flow: Step 1 ${negbase ? "Negative Database hit" : fired?.label ?? "check fired"}`, caseExtra());
+        const cid = storeRef.current.applyTriage(triageRef.current!, "Further Investigation", `${alert.type} flow: Step 1 ${negbase ? `Negative Database hit (${nb.match?.category})` : fired?.label ?? "check fired"}`, caseExtra());
         setCaseId(cid);
         flush(cid);
         play([...caseEvents(cid, alert.account), { from: "engine", to: "cases", label: "Continue block: human in the loop", delay: 300, colour: "Red" }]);
@@ -368,8 +370,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
                 {alert.debits.length > 0 && <p>Debits: {alert.debits.map((c) => c.toLocaleString("en-IN")).join(", ")} to {alert.sentTo}</p>}
                 {alert.balance !== undefined && <p>Balance: Rs {alert.balance.toLocaleString("en-IN")}</p>}
               </div>
-              <div className="flex items-center justify-between"><span>Negative Database hit</span><Switch checked={negbase} onCheckedChange={setNegbase} disabled={running} /></div>
-              <p className="-mt-2 text-xs text-muted-foreground">Pretend this account is already on the Negative Database. Step 1 fails immediately (Red).</p>
+              <p className={`rounded-md border px-3 py-2 text-xs ${negbase ? "border-destructive/40 text-destructive" : "text-muted-foreground"}`}>Negative Database: {nbText}</p>
               <ContactBox raw={raw} setRaw={setRaw} name={cname} setName={setCname} lang={lang} setLang={setLang} disabled={running} />
               {!running ? <Button className="w-full" onClick={start} disabled={!canRun}><Play className="mr-2 h-4 w-4" />{store.loaded ? "Run flow" : "Loading demo…"}</Button> : <Button className="w-full" variant="outline" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />New run</Button>}
             </CardContent>

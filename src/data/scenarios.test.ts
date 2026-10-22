@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { scenarios, toWorkbook } from "./scenarios";
-import { dataChecks, scriptFor } from "@/lib/edd-flow";
+import { dataChecks, negbaseLookup, scriptFor } from "@/lib/edd-flow";
+import { negbase } from "@/data/edd";
 
-const get = (id: string) => toWorkbook(scenarios.find((s) => s.id === id)!.input);
+const get = (id: string) => { const i = scenarios.find((s) => s.id === id)!.input; return toWorkbook({ ...i, negbaseHit: negbaseLookup(negbase, { account: i.account, upi: i.upi }).hit }); };
 const firedId = (id: string) => {
   const w = get(id);
   return dataChecks(w.alert, w.profile, w.negbase).checks.find((c) => c.fired)?.id;

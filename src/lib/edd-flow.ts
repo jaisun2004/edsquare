@@ -96,3 +96,19 @@ export function afterVoice(answered: boolean, sendWhatsApp: boolean): "bitly" | 
   if (sendWhatsApp) return "bitly";
   return answered ? "score" : "alert";
 }
+
+/** Look up account / UPI / mobile in the Negative Database (identifier or linked identifiers). */
+export function negbaseLookup<R extends { identifier: string; associated: string[] }>(records: R[], q: { account?: string | undefined; upi?: string | undefined; mobile?: string | undefined }): { hit: boolean; match?: R; matched?: string; searched: string[] } {
+  const norm = (v: string) => v.toLowerCase().replace(/[\s-]/g, "");
+  const mob = (v: string) => { const d = v.replace(/\D/g, ""); return d.length > 10 ? d.slice(-10) : d; };
+  const searched = [q.account, q.upi, q.mobile].filter((v): v is string => !!v && v.trim() !== "" && v !== "—");
+  const keys = searched.map((v) => (v === q.mobile ? mob(v) : norm(v)));
+  for (const r of records) {
+    for (const id of [r.identifier, ...r.associated]) {
+      const k = norm(id);
+      const i = keys.findIndex((x) => x && x === k);
+      if (i >= 0) return { hit: true, match: r, matched: searched[i]!, searched };
+    }
+  }
+  return { hit: false, searched };
+}
