@@ -9,6 +9,7 @@ The "Transaction pipeline" tab is the original prototype. Its Engagement stage o
 3. **Pipeline view kept as the visual.** The top tracker (Transaction -> Alert -> Enrichment -> Decision Manager -> ... -> Enforcement) stays, but each stage lights up from the real flow's progress instead of its own fake timers. The Decision Manager stage still shows fired rules and score.
 4. **Cases get the full record.** Call playback, transcript, questionnaire answers, step status, timeline and audit are saved on the case exactly like runs from the other tab, and show on Alerts, Cases, Dashboard and Outcomes.
 5. **Fake transcript removed.** No pre-written call text anywhere.
+6. **Call script from the uploaded sheet.** A composed transaction is treated as a Model alert, so the AI call uses the sheet's "Mod Script" questions (greeting, identity check, employment, office/home pin code, sender known, reason for credit). If the transaction has outgoing payments too, it uses "Mod Script Debits and Credits". The WhatsApp step uses "Mod Bitly". Outcomes follow the sheet: flag over 10 continue block, 8-10 block (merchant goes to Manual review), below 8 unblock; no answer retries 3 times, then WhatsApp, then email & app alert, then Manual review queue.
 
 ## Technical details
 - Add a mapper in `src/data/scenarios.ts`: `TxnInput` -> `WorkbookAlert` + CBS-like profile (type "Model" for transactions), so `edd-flow.ts` stays the single evaluator.
