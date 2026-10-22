@@ -18,14 +18,14 @@ export const ColourBadge = ({ c }: { c: RunColour }) => <Badge variant="outline"
 const path = (r: DemoRun) =>
   `Call ${r.callAnswered ? "answered" : r.callAttempts ? `not answered (${r.callAttempts})` : "not placed"} · WhatsApp ${r.whatsappSent ? (r.formSubmitted ? "answered" : "sent, no reply") : "not sent"}`;
 
-export function LatestDemoRuns({ limit = 5 }: { limit?: number }) {
+export function LatestCases({ limit = 5 }: { limit?: number }) {
   const { demoRuns } = useEDD();
   return (
     <Card>
-      <CardHeader><CardTitle className="text-sm">Latest demo runs</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-sm">Latest cases</CardTitle></CardHeader>
       <CardContent className="space-y-2 text-sm">
         {demoRuns.length === 0 && (
-          <p className="text-muted-foreground">No demo runs yet. <Link to="/simulator" className="text-primary hover:underline">Open the Demo Simulator</Link></p>
+          <p className="text-muted-foreground">No cases yet.</p>
         )}
         {demoRuns.slice(0, limit).map((r) => (
           <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border p-3">
@@ -46,11 +46,11 @@ export function LatestDemoRuns({ limit = 5 }: { limit?: number }) {
   );
 }
 
-export function DemoRunStats() {
+export function CaseResultStats() {
   const { demoRuns, cases } = useEDD();
   const s = runStats(demoRuns, cases.flatMap((c) => c.calls ?? []), cases.flatMap((c) => c.questionnaires ?? []));
   const items = [
-    { label: "Demo runs", value: s.total },
+    { label: "Alerts engaged", value: s.total },
     { label: "Cleared, no case", value: s.cleared },
     { label: "Case created", value: s.withCase },
     { label: "Voice answer rate", value: `${s.answerRate}%` },
@@ -58,7 +58,7 @@ export function DemoRunStats() {
   ];
   return (
     <Card>
-      <CardHeader><CardTitle className="text-sm">Demo runs</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-sm">Case results</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-5">
           {items.map((i) => <div key={i.label}><p className="text-xl font-semibold">{i.value}</p><p className="text-xs text-muted-foreground">{i.label}</p></div>)}
@@ -71,15 +71,15 @@ export function DemoRunStats() {
   );
 }
 
-export function DemoRunSummary({ run }: { run: DemoRun }) {
+export function EngagementSummary({ run }: { run: DemoRun }) {
   return (
     <Card className="lg:col-span-2 border-primary/30">
-      <CardHeader><CardTitle className="flex items-center gap-2 text-sm">Demo run summary <Badge variant="secondary">{run.sample ? "Sample scenario" : "Live demo"}</Badge> <ColourBadge c={run.colour} /></CardTitle></CardHeader>
+      <CardHeader><CardTitle className="flex items-center gap-2 text-sm">Engagement summary <ColourBadge c={run.colour} /></CardTitle></CardHeader>
       <CardContent className="space-y-2 text-sm">
         <p><span className="text-muted-foreground">Path taken: </span>{path(run)}</p>
         {run.number && <p><span className="text-muted-foreground">Customer number: </span>{run.number}</p>}
         <p><span className="text-muted-foreground">Outcome: </span>{run.outcome || "—"}</p>
-        <p className="text-xs text-muted-foreground">Run at {formatDateTime(run.at)}. Answers and transcripts are in the Engagement tab.</p>
+        <p className="text-xs text-muted-foreground">Engaged at {formatDateTime(run.at)}. Answers and transcripts are in the Engagement tab.</p>
         {run.recordingUrl && <audio controls src={run.recordingUrl} className="h-8 w-full" />}
       </CardContent>
     </Card>

@@ -46,7 +46,7 @@ export function EngagementBody() {
       </div>
 
       <Card className="mb-6">
-        <CardHeader><CardTitle className="text-sm">Live demo channel results</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-sm">Channel results</CardTitle></CardHeader>
         <CardContent className="grid gap-4 text-sm sm:grid-cols-4">
           <div><p className="text-xl font-semibold">{st.callsAnswered}/{st.calls}</p><p className="text-xs text-muted-foreground">Voice calls answered</p></div>
           <div><p className="text-xl font-semibold">{st.answerRate}%</p><p className="text-xs text-muted-foreground">Voice answer rate</p></div>
@@ -77,7 +77,7 @@ export function EngagementBody() {
                       <Link to="/cases/$caseId" params={{ caseId: a.caseId }} className="hover:underline">{a.caseId}</Link>
                     </TableCell>
                     <TableCell>{a.customer}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{a.channel}{a.live && <Badge className="ml-2" variant="secondary">Live demo</Badge>}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{a.channel}</TableCell>
                     <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
                     <TableCell className="text-sm text-muted-foreground">{formatDateTime(a.at)}</TableCell>
                     <TableCell className="max-w-[280px] text-sm text-muted-foreground">{a.outcome}{a.recordingUrl && <audio controls src={a.recordingUrl} className="mt-1 h-8 w-full" />}</TableCell>

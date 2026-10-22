@@ -24,7 +24,6 @@ import type { Role } from "@/data/edd";
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/simulator", label: "Demo Simulator", icon: PlayCircle },
   { to: "/alerts", label: "Alerts", icon: Inbox },
   { to: "/cases", label: "Cases", icon: FolderKanban },
   { to: "/outcomes", label: "Outcomes & Reports", icon: BarChart3 },
@@ -43,6 +42,7 @@ const nav = [
     ],
   },
   { to: "/audit", label: "Audit Trail", icon: ScrollText },
+  { to: "/simulator", label: "Demo Simulator", icon: PlayCircle, divider: true },
 ] as const;
 
 
@@ -70,6 +70,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               const children = "children" in item ? item.children : undefined;
               return (
                 <div key={to}>
+                  {"divider" in item && <div className="my-3 border-t border-sidebar-border" />}
                   <Link
                     to={to}
                     activeOptions={{ exact: to === "/" }}

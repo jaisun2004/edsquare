@@ -86,8 +86,8 @@ function CaseQueuePage() {
                         <Link to="/cases/$caseId" params={{ caseId: c.id }} className="text-sm font-medium hover:underline">
                           {c.id}
                         </Link>
-                        {liveIds.has(c.id) && <Badge variant="secondary" className="ml-2">Live demo</Badge>}
-                        {sampleIds.has(c.id) && <Badge variant="outline" className="ml-2">Sample</Badge>}
+                        
+                        
                         <p className="text-sm text-muted-foreground">{c.customer}</p>
                         <p className="mt-1 text-xs text-muted-foreground">{howGot(c.id)}</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -139,8 +139,8 @@ function CaseQueuePage() {
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">
                         <Link to="/cases/$caseId" params={{ caseId: c.id }} className="hover:underline">{c.id}</Link>
-                        {liveIds.has(c.id) && <Badge variant="secondary" className="ml-2">Live demo</Badge>}
-                        {sampleIds.has(c.id) && <Badge variant="outline" className="ml-2">Sample</Badge>}
+                        
+                        
                         <p className="max-w-[260px] text-xs font-normal text-muted-foreground">{howGot(c.id)}</p>
                       </TableCell>
                       <TableCell>{c.customer}</TableCell>
