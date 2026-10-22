@@ -30,8 +30,6 @@ function CaseQueuePage() {
   const { cases, demoRuns, alerts, role, moveStage, assignCase } = useEDD();
   const [grade, setGrade] = useState("all");
 
-  const liveIds = new Set(demoRuns.filter((r) => !r.sample).map((r) => r.caseId));
-  const sampleIds = new Set(demoRuns.filter((r) => r.sample).map((r) => r.caseId));
   const howGot = (id: string) => {
     const r = demoRuns.find((x) => x.caseId === id);
     if (r) return `${r.alertType} · call ${r.callAnswered ? "answered" : r.callAttempts ? "not answered" : "not placed"} · WhatsApp ${r.whatsappSent ? (r.formSubmitted ? "answered" : "no reply") : "not sent"} · ${r.colour}`;
