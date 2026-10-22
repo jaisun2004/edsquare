@@ -14,20 +14,24 @@ export interface Thresholds {
 
 export const defaultThresholds: Thresholds = { minAmount: 5000, avgMultiple: 2, creditSharePct: 20, flagBlock: 10, flagReview: 8, voiceRetries: 3 };
 
-export interface Check { id: string; label: string; fired: boolean; detail: string }
+/** status: "fired" = this rule blocked; "also" = rule is true but an earlier rule already blocked; "pass" = not true. */
+export interface Check { id: string; label: string; fired: boolean; detail: string; status: "fired" | "also" | "pass" }
 
+/** Every rule is evaluated independently; the first true rule is the blocking one. */
 export function dataChecks(alert: WorkbookAlert, p: CbsProfile, negbaseHit: boolean, t: Thresholds = defaultThresholds): { outcome: Colour; checks: Check[] } {
   const multiple = p.avgCrAmtPerDay > 0 ? alert.amount / p.avgCrAmtPerDay : Infinity;
-  const creditsSum = alert.credits.reduce((a, b) => a + b, 0);
-  const largest = Math.max(alert.amount, ...alert.credits);
-  const share = creditsSum > 0 ? (Math.max(...alert.credits) / creditsSum) * 100 : 0;
-  const checks: Check[] = [
-    { id: "C1", label: "mFilterIt Negative Database", fired: negbaseHit, detail: negbaseHit ? "Account found in Negative Database" : "Not found" },
-    { id: "C2", label: `Amount > Rs ${t.minAmount.toLocaleString("en-IN")} and ≥ ${t.avgMultiple}x average daily credit`, fired: !negbaseHit && alert.amount > t.minAmount && multiple >= t.avgMultiple, detail: `Rs ${alert.amount.toLocaleString("en-IN")} vs average Rs ${p.avgCrAmtPerDay.toLocaleString("en-IN")}/day = ${multiple.toFixed(1)}x` },
-    { id: "C3", label: `Transaction > ${t.creditSharePct}% of credits in last 2 days`, fired: false, detail: `Largest Rs ${largest.toLocaleString("en-IN")} of Rs ${creditsSum.toLocaleString("en-IN")} = ${share.toFixed(0)}%` },
+  const credits = alert.credits.length ? alert.credits : [alert.amount];
+  const creditsSum = credits.reduce((a, b) => a + b, 0);
+  const largest = Math.max(...credits);
+  const share = creditsSum > 0 ? (largest / creditsSum) * 100 : 0;
+  const raw = [
+    { id: "C1", label: "mFilterIt Negative Database", hit: negbaseHit, detail: negbaseHit ? "Account found in Negative Database" : "Not found" },
+    { id: "C2", label: `Amount > Rs ${t.minAmount.toLocaleString("en-IN")} and ≥ ${t.avgMultiple}x average daily credit`, hit: alert.amount > t.minAmount && multiple >= t.avgMultiple, detail: `Rs ${alert.amount.toLocaleString("en-IN")} vs average Rs ${p.avgCrAmtPerDay.toLocaleString("en-IN")}/day = ${multiple.toFixed(1)}x` },
+    { id: "C3", label: `Transaction > ${t.creditSharePct}% of credits in last 2 days`, hit: credits.length > 1 && share > t.creditSharePct, detail: `Largest Rs ${largest.toLocaleString("en-IN")} of Rs ${creditsSum.toLocaleString("en-IN")} = ${share.toFixed(0)}%` },
   ];
-  checks[2]!.fired = !negbaseHit && !checks[1]!.fired && alert.credits.length > 1 && share > t.creditSharePct;
-  return { outcome: checks.some((c) => c.fired) ? "Red" : "Amber", checks };
+  const first = raw.findIndex((c) => c.hit);
+  const checks: Check[] = raw.map((c, i) => ({ id: c.id, label: c.label, detail: c.detail, fired: i === first, status: i === first ? "fired" : c.hit ? "also" : "pass" }));
+  return { outcome: first >= 0 ? "Red" : "Amber", checks };
 }
 
 export const isMerchant = (p: CbsProfile) => p.accountType === "Current";

@@ -170,7 +170,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
     play(intakeEvents(alert, profile, negbase, r.checks, r.outcome), () => {
       setChecks(r.checks);
       const fired = r.checks.find((c) => c.fired);
-      for (const c of r.checks) record(entry("Data check", `Check: ${c.label}`, `${c.fired ? "Fired" : "Passed"}: ${c.detail}`));
+      for (const c of r.checks) record(entry("Data check", `Check: ${c.label}`, `${c.fired ? "Fired" : c.status === "also" ? "Also true" : "Passed"}: ${c.detail}`));
       record(entry("Data check", "Negative Database lookup", negbase ? "Hit: account found on the Negative Database" : "No match on the Negative Database"));
       add("Step 1 Data checks", r.outcome, fired ? `${fired.label}: ${fired.detail}.` : "No check fired.", undefined);
       if (r.outcome === "Red") {
@@ -402,7 +402,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
               {checks.map((c) => (
                 <div key={c.id} className="flex items-start justify-between gap-2 text-xs">
                   <span><b>{c.label}</b><br /><span className="text-muted-foreground">{c.detail}</span></span>
-                  <Badge variant="outline" className={c.fired ? colourCls.Red : ""}>{c.fired ? "Fired" : "Pass"}</Badge>
+                  <Badge variant="outline" className={c.fired ? colourCls.Red : c.status === "also" ? colourCls.Amber : ""}>{c.fired ? "Fired" : c.status === "also" ? "Also true" : "Pass"}</Badge>
                 </div>
               ))}
               {phase === "human" && !log.some((l) => !l.step.startsWith("Step 1") && !l.step.startsWith("WhatsApp block")) && (
