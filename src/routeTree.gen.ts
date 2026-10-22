@@ -28,6 +28,7 @@ import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as CasesIndexRouteImport } from './routes/cases.index'
 import { Route as CasesCaseIdRouteImport } from './routes/cases.$caseId'
 import { Route as QTokenRouteImport } from './routes/q.$token'
+import { Route as SCodeRouteImport } from './routes/s.$code'
 import { Route as AdminRulesIndexRouteImport } from './routes/admin.rules.index'
 import { Route as AdminRulesRuleIdRouteImport } from './routes/admin.rules.$ruleId'
 import { Route as AdminRulesNewRouteImport } from './routes/admin.rules.new'
@@ -129,6 +130,11 @@ const QTokenRoute = QTokenRouteImport.update({
   path: '/q/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SCodeRoute = SCodeRouteImport.update({
+  id: '/s/$code',
+  path: '/s/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRulesIndexRoute = AdminRulesIndexRouteImport.update({
   id: '/rules/',
   path: '/rules/',
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/q/$token': typeof QTokenRoute
+  '/s/$code': typeof SCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/cases/': typeof CasesIndexRoute
   '/admin/rules/$ruleId': typeof AdminRulesRuleIdRoute
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/q/$token': typeof QTokenRoute
+  '/s/$code': typeof SCodeRoute
   '/admin': typeof AdminIndexRoute
   '/cases': typeof CasesIndexRoute
   '/admin/rules/$ruleId': typeof AdminRulesRuleIdRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/q/$token': typeof QTokenRoute
+  '/s/$code': typeof SCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/cases/': typeof CasesIndexRoute
   '/admin/rules/$ruleId': typeof AdminRulesRuleIdRoute
@@ -253,6 +262,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/cases/$caseId'
     | '/q/$token'
+    | '/s/$code'
     | '/admin/'
     | '/cases/'
     | '/admin/rules/$ruleId'
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/cases/$caseId'
     | '/q/$token'
+    | '/s/$code'
     | '/admin'
     | '/cases'
     | '/admin/rules/$ruleId'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/cases/$caseId'
     | '/q/$token'
+    | '/s/$code'
     | '/admin/'
     | '/cases/'
     | '/admin/rules/$ruleId'
@@ -327,6 +339,7 @@ export interface RootRouteChildren {
   SimulatorRoute: typeof SimulatorRoute
   CasesCaseIdRoute: typeof CasesCaseIdRoute
   QTokenRoute: typeof QTokenRoute
+  SCodeRoute: typeof SCodeRoute
   CasesIndexRoute: typeof CasesIndexRoute
 }
 
@@ -465,6 +478,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/s/$code': {
+      id: '/s/$code'
+      path: '/s/$code'
+      fullPath: '/s/$code'
+      preLoaderRoute: typeof SCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/rules/': {
       id: '/admin/rules/'
       path: '/rules'
@@ -545,6 +565,7 @@ const rootRouteChildren: RootRouteChildren = {
   SimulatorRoute: SimulatorRoute,
   CasesCaseIdRoute: CasesCaseIdRoute,
   QTokenRoute: QTokenRoute,
+  SCodeRoute: SCodeRoute,
   CasesIndexRoute: CasesIndexRoute,
 }
 export const routeTree = rootRouteImport

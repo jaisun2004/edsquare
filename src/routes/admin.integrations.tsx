@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sendAccountBlockedWhatsApp, sendWhatsAppText } from "@/lib/whatsapp.functions";
-import { SUPPORT_NUMBER } from "@/lib/whatsapp";
+import { SUPPORT_NUMBER, SHORT_LINK_DAYS } from "@/lib/whatsapp";
+import { createQuestionnaire } from "@/lib/questionnaire.functions";
 import { normalisePhone } from "@/lib/voice";
 
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ function IntegrationsPage() {
   return (
     <div className="space-y-4">
     <WhatsAppTest />
+    <ShortLinkCard />
     <div className="grid gap-4 md:grid-cols-2">
       {integrations.map((i) => (
         <Card key={i.id}>
@@ -90,6 +92,38 @@ function WhatsAppTest() {
         </div>
         {out.map((l, i) => <p key={i} className="break-all rounded bg-muted p-2 text-xs">{l}</p>)}
         <p className="text-xs text-muted-foreground">The template reaches any number. Free text arrives only if that phone messaged the bank's WhatsApp number in the last 24 hours.</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+const LINK_BASE = "https://edsquare.mfilterit.net/s/";
+
+function ShortLinkCard() {
+  const create = useServerFn(createQuestionnaire);
+  const [sample, setSample] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  async function make() {
+    setBusy(true);
+    try {
+      const { code } = await create({ data: { header: { bank: "Airtel Payments Bank", amount: 25000, last4: "1234", name: "Test customer" }, questions: [{ id: "Q1", text: "Do you know the sender of this credit?", options: ["Yes", "No"] }] } });
+      setSample(LINK_BASE + code);
+    } finally { setBusy(false); }
+  }
+  const shown = sample ?? `${LINK_BASE}AB12CDEF`;
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-sm">Short link for WhatsApp template</CardTitle></CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        <p className="text-muted-foreground">Every WhatsApp questionnaire gets its own short link that opens that customer's questionnaire. It stays valid for {SHORT_LINK_DAYS} days. Share this format with the WhatsApp team so the template can carry a link variable, for example "Please answer here: {"{{link}}"}".</p>
+        <p className="text-xs">Format: <code>{LINK_BASE}</code> + 8 letters/digits</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <code className="break-all rounded bg-muted px-2 py-1 text-xs">{shown}</code>
+          <Button size="sm" variant="outline" onClick={() => { void navigator.clipboard.writeText(shown); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? "Copied" : "Copy"}</Button>
+          <Button size="sm" disabled={busy} onClick={() => void make()}>{busy ? "Creating…" : "Create sample link"}</Button>
+          {sample && <a href={sample} target="_blank" rel="noreferrer" className="text-xs text-primary underline">Open it</a>}
+        </div>
       </CardContent>
     </Card>
   );

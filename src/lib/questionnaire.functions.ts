@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { Json } from "@/integrations/supabase/types";
+import { makeShortCode, shortCodeOk, SHORT_LINK_DAYS } from "@/lib/whatsapp";
 
 export interface QHeader { bank: string; amount: number; last4: string; name: string }
 export interface QQuestion { id: string; text: string; options: string[] }
@@ -16,9 +17,13 @@ export const createQuestionnaire = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const bytes = crypto.getRandomValues(new Uint8Array(18));
     const token = Array.from(bytes, (b) => "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 56]).join("");
-    const { error } = await supabaseAdmin.from("questionnaire_sessions").insert({ token, header: data.header as unknown as Json, questions: data.questions as unknown as Json });
-    if (error) throw new Error(`Could not create questionnaire: ${error.message}`);
-    return { token };
+    let error: { message: string } | null = null;
+    for (let i = 0; i < 3; i++) {
+      const code = makeShortCode();
+      ({ error } = await supabaseAdmin.from("questionnaire_sessions").insert({ token, short_code: code, header: data.header as unknown as Json, questions: data.questions as unknown as Json }));
+      if (!error) return { token, code };
+    }
+    throw new Error(`Could not create questionnaire: ${error?.message}`);
   });
 
 export const getQuestionnaire = createServerFn({ method: "POST" })
@@ -55,4 +60,18 @@ export const submitQuestionnaire = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("questionnaire_sessions").update({ answers: clean, status: "submitted", submitted_at: new Date().toISOString() }).eq("token", data.token);
     if (error) throw new Error(error.message);
     return { ok: true, already: false };
+  });
+
+/** Resolves a short link code to its questionnaire token; null if unknown or older than the link lifetime. */
+export const resolveShortLink = createServerFn({ method: "POST" })
+  .inputValidator((input: { code: string }) => {
+    if (!shortCodeOk(input.code)) throw new Error("Invalid link.");
+    return input;
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin.from("questionnaire_sessions").select("token, created_at").eq("short_code", data.code).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row || Date.now() - new Date(row.created_at).getTime() > SHORT_LINK_DAYS * 86400_000) return null;
+    return { token: row.token };
   });

@@ -33,3 +33,12 @@ export function parsePartnerReply(httpOk: boolean, body: string): { sent: boolea
     return httpOk ? { sent: true } : { sent: false, error: body.slice(0, 200) };
   }
 }
+
+/** Short-link code alphabet: no look-alike characters (0/O, 1/l/I). */
+export const SHORT_ALPHABET = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+export const SHORT_LEN = 8;
+export const SHORT_LINK_DAYS = 7;
+export function makeShortCode(bytes: Uint8Array = crypto.getRandomValues(new Uint8Array(SHORT_LEN))): string {
+  return Array.from(bytes.slice(0, SHORT_LEN), (b) => SHORT_ALPHABET[b % SHORT_ALPHABET.length]).join("");
+}
+export const shortCodeOk = (c: string) => new RegExp(`^[${SHORT_ALPHABET}]{${SHORT_LEN}}$`).test(c ?? "");
