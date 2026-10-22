@@ -97,7 +97,9 @@ export function toAttrs(t: TxnInput): AttrMap {
 
 /** Turn a composed transaction into a Model alert + core banking profile so it runs through the sheet flow (edd-flow). */
 export function toWorkbook(t: TxnInput): { alert: WorkbookAlert; profile: CbsProfile; negbase: boolean } {
-  const credits = t.prior2dCredits > 0 ? [t.amount, t.prior2dCredits] : [t.amount];
+  // Earlier credits are split into parts no bigger than this transaction, so rule 3 measures this transaction's share.
+  const parts = t.prior2dCredits > 0 ? Math.ceil(t.prior2dCredits / Math.max(t.amount, 1)) : 0;
+  const credits = [t.amount, ...Array.from({ length: parts }, (_, i) => Math.floor(t.prior2dCredits / parts) + (i === 0 ? t.prior2dCredits % parts : 0))];
   const debits = t.passThroughPct >= 50 ? [Math.round((t.amount * t.passThroughPct) / 100)] : [];
   const salaried = t.accountAgeDays > 2000;
   const avgCr = t.avgDailyCredit;
