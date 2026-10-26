@@ -1,31 +1,71 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import type { Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { signInServer, refreshServer, type AppSession } from "@/lib/auth.functions";
 
 const PUBLIC_PREFIXES = ["/q/", "/s/"];
+const KEY = "edsquare-session";
+const SIGNED_OUT_EVENT = "edsquare-signed-out";
+
+function readStored(): AppSession | null {
+  try {
+    const raw = localStorage.getItem(KEY);
+    return raw ? (JSON.parse(raw) as AppSession) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function signOutApp() {
+  localStorage.removeItem(KEY);
+  window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
+}
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const isPublic = PUBLIC_PREFIXES.some((p) => path.startsWith(p));
-  const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [session, setSession] = useState<AppSession | null | undefined>(undefined);
 
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    return () => data.subscription.unsubscribe();
+    const onOut = () => setSession(null);
+    window.addEventListener(SIGNED_OUT_EVENT, onOut);
+    const stored = readStored();
+    const now = Date.now() / 1000;
+    if (!stored) setSession(null);
+    else if (stored.expiresAt > now + 60) setSession(stored);
+    else {
+      refreshServer({ data: { refreshToken: stored.refreshToken } })
+        .then((r) => {
+          if (r.ok) {
+            localStorage.setItem(KEY, JSON.stringify(r.session));
+            setSession(r.session);
+          } else {
+            localStorage.removeItem(KEY);
+            setSession(null);
+          }
+        })
+        .catch(() => setSession(null));
+    }
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, onOut);
   }, []);
 
   if (isPublic) return <>{children}</>;
   if (session === undefined) return <div className="min-h-screen bg-background" />;
-  if (!session) return <LoginScreen />;
+  if (!session)
+    return (
+      <LoginScreen
+        onSignedIn={(s) => {
+          localStorage.setItem(KEY, JSON.stringify(s));
+          setSession(s);
+        }}
+      />
+    );
   return <>{children}</>;
 }
 
-function LoginScreen() {
+function LoginScreen({ onSignedIn }: { onSignedIn: (s: AppSession) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -36,20 +76,13 @@ function LoginScreen() {
     setBusy(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) {
-        if (error.code === "invalid_credentials") {
-          setError("Wrong email or password.");
-        } else if (error.code === "email_not_confirmed") {
-          setError("Please confirm your email before signing in.");
-        } else if (!error.status || error.status >= 500) {
-          setError("Unable to connect to sign-in. Check your connection and try again.");
-        } else if (error.status === 429) {
-          setError("Too many sign-in attempts. Please wait a moment and try again.");
-        } else {
-          setError("Sign-in is unavailable right now. Please try again.");
-        }
-      }
+      const r = await signInServer({ data: { email: email.trim(), password } });
+      if (r.ok) return onSignedIn(r.session);
+      if (r.code === "invalid_credentials") setError("Wrong email or password.");
+      else if (r.code === "email_not_confirmed") setError("Please confirm your email before signing in.");
+      else if (r.code === "rate_limited" || r.code === "over_request_rate_limit")
+        setError("Too many sign-in attempts. Please wait a moment and try again.");
+      else setError("Sign-in is unavailable right now. Please try again.");
     } catch {
       setError("Unable to connect to sign-in. Check your connection and try again.");
     } finally {

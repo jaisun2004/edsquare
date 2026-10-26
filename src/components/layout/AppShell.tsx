@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEDD } from "@/lib/edd-store";
 import { roleLabels } from "@/lib/roles";
+import { signOutApp } from "@/components/layout/AuthGate";
 import type { Role } from "@/data/edd";
 
 const nav = [
@@ -132,7 +133,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Button variant="outline" size="sm" onClick={resetDemo}>
               <RotateCcw className="mr-1 size-3.5" /> Reset demo
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => import("@/integrations/supabase/client").then(({ supabase }) => supabase.auth.signOut())}>
+            <Button variant="ghost" size="sm" onClick={signOutApp}>
               Sign out
             </Button>
           </div>
