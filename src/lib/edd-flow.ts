@@ -86,6 +86,16 @@ export function stepOutcome(flag: number, merchant: boolean, t: Thresholds = def
   return { colour, action: colour === "Green" ? "unblock" : colour === "Manual" ? "manual_queue" : "continue_block" };
 }
 
+/** Score the supplied response directly, without waiting for UI state to update. */
+export function scoreResponse(qs: ScriptQuestion[], answers: Record<string, string>, profile: CbsProfile, type: "I4C" | "Model", thresholds: Thresholds = defaultThresholds) {
+  const scored = qs.flatMap((q) => {
+    const answer = answers[q.id];
+    return answer ? [{ question: q.text, answer, points: answerPoints(q, answer, profile, type) }] : [];
+  });
+  const flag = scored.reduce((sum, a) => sum + a.points, 0);
+  return { answers: scored, flag, outcome: stepOutcome(flag, isMerchant(profile), thresholds) };
+}
+
 /** Where "no response" at a step leads, per the sheet. */
 export function nextOnNoResponse(step: "voice" | "bitly" | "alert"): "bitly" | "alert" | "exit" {
   return step === "voice" ? "bitly" : step === "bitly" ? "alert" : "exit";

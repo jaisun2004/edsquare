@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cbsProfiles, greeting, questionsFor, workbookAlerts, type CbsProfile, type WorkbookAlert } from "@/data/workbook";
 import { toAttrs } from "@/data/scenarios";
-import { negbaseLookup, afterVoice, answerPoints, dataChecks, defaultThresholds, stepOutcome, SHEET_STEPS, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
+import { negbaseLookup, afterVoice, answerPoints, dataChecks, defaultThresholds, stepOutcome, scoreResponse, SHEET_STEPS, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
 import { useEDD, type FlowLogEntry } from "@/lib/edd-store";
 import type { CallRecord, QuestionnaireRecord, TimelineEntry } from "@/data/edd";
 import { summariseFlowCase } from "@/lib/rule-ai.functions";
@@ -212,11 +212,11 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
     setAnswering(false);
   };
 
-  const submitAnswers = () => {
-    const o = stepOutcome(flag, merchant, th);
+  const submitAnswers = (received: Record<string, string> = answers) => {
+    const result = scoreResponse(qs, received, profile, alert.type, th);
+    const { flag, outcome: o, answers: scored } = result;
     const name = phase === "voice" ? "Step 2 Voice bot" : phase === "bitly" ? "Step 3 WhatsApp questionnaire" : "Step 4 Email & app alert";
     const text = `Response flag ${flag}${merchant ? " (merchant account)" : ""}: ${o.action === "continue_block" ? "continue block" : o.action === "manual_queue" ? "refer to Manual review queue" : "unblock, freeze lifted, no case"}.`;
-    const scored = qs.filter((q) => answers[q.id]).map((q) => ({ question: q.text, answer: answers[q.id]!, points: answerPoints(q, answers[q.id]!, profile, alert.type) }));
     const extra = { answers: scored, flag, colour: o.colour };
     if (phase === "voice") {
       const last = callsRef.current.filter((c) => c.outcome === "answered").at(-1);
@@ -229,12 +229,12 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
     add(name, o.colour, text);
     setAnswering(false);
     if (phase === "voice") {
-      setPendingVoice({ o, answers, flag });
+      setPendingVoice({ o, answers: received, flag });
       play([{ from: "dm", to: "engine", label: `Voice answers scored: flag ${flag} → ${o.colour}. WhatsApp optional`, delay: 300, colour: o.colour }]);
       setPhase("wa_offer");
       return;
     }
-    finish(phase === "bitly" ? "whatsapp" : "engine", name, o, answers, flag);
+    finish(phase === "bitly" ? "whatsapp" : "engine", name, o, received, flag);
   };
 
   const finish = (lane: "voice" | "whatsapp" | "engine", name: string, o: ReturnType<typeof stepOutcome>, ans: Record<string, string>, f: number) => {
@@ -253,7 +253,11 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
     add(step, l.ok ? "Amber" : "Red", l.text);
     play([{ from: "engine", to: step.includes("Voice") ? "voice" : "whatsapp", label: l.text, delay: 100, ...(l.ms !== undefined ? { ms: l.ms } : {}), ...(l.ok ? {} : { colour: "Red" as const }) }]);
   };
-  const realAnswers = (a: Record<string, string>) => { setAnswers(a); setAnswering(true); };
+  const realAnswers = (a: Record<string, string>) => {
+    setAnswers(a);
+    if (phase === "bitly") submitAnswers(a);
+    else setAnswering(true);
+  };
 
   const getSummary = async () => {
     setSummaryBusy(true);
@@ -430,11 +434,11 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
               )}
               {phase === "voice" && !answering && retryIn === 0 && !offline && <RealVoicePanel key={`v-${alertId}-${attempts}`} contact={contact} attempt={attempts + 1} retries={th.voiceRetries} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 2 Voice bot")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} onCall={onCall} />}
               {phase === "bitly" && !answering && !offline && <RealWhatsAppPanel key={`w-${alertId}`} contact={contact} alert={alert} profile={profile} qs={qs} onLog={realLog("Step 3 WhatsApp questionnaire")} onAnswers={realAnswers} onNoResponse={(r) => noResponse(r)} onQuestionnaire={onQuestionnaire} />}
-              {phase === "bitly" ? (
+              {phase === "bitly" ? (offline &&
                 <QuestionnaireWindow amount={alert.amount} last4={alert.account.slice(-4)} qs={qs} answers={answers} started={answering} busy={busy} flag={flag} colour={flagOutcome(flag, merchant, th)}
                   points={(q, a) => answerPoints(q, a, profile, alert.type)}
                   onStart={() => { setAnswering(true); play([{ from: "whatsapp", to: "engine", label: "Customer opened questionnaire", delay: 200, colour: "Green" }]); }}
-                  onNoReply={() => noResponse()} onAnswer={(id, a) => setAnswers({ ...answers, [id]: a })} onSubmit={submitAnswers} />
+                  onNoReply={() => noResponse()} onAnswer={(id, a) => setAnswers({ ...answers, [id]: a })} onSubmit={() => submitAnswers()} />
               ) : (
               <div className="grid gap-4 md:grid-cols-[auto_1fr]">
               {phase === "voice" ? <PhoneCall attempt={attempts + 1} retries={th.voiceRetries} connected={answering} transcript={transcript} /> : <div />}
@@ -460,7 +464,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
                   ))}
                   <div className="flex items-center justify-between rounded-md border p-2 text-sm">
                     <span>Response flag: <b>{flag}</b> → <Badge variant="outline" className={colourCls[flagOutcome(flag, merchant, th)]}>{flagOutcome(flag, merchant, th)}</Badge></span>
-                    <Button size="sm" disabled={Object.keys(answers).length < qs.length} onClick={submitAnswers}>{phase === "voice" ? "Confirm answers" : "Submit answers"}</Button>
+                    <Button size="sm" disabled={Object.keys(answers).length < qs.length} onClick={() => submitAnswers()}>{phase === "voice" ? "Confirm answers" : "Submit answers"}</Button>
                   </div>
                   <p className="text-xs text-muted-foreground">Points are added when answers don't match Core Banking (employment, pin code, unknown sender, payment reason vs account type).</p>
                 </div>

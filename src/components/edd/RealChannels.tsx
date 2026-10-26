@@ -16,6 +16,7 @@ import { extractCallAnswers } from "@/lib/rule-ai.functions";
 import { sendAccountBlockedWhatsApp, sendWhatsAppText } from "@/lib/whatsapp.functions";
 import { createQuestionnaire, getQuestionnaire } from "@/lib/questionnaire.functions";
 import { accountDigits, maskNumber, SUPPORT_NUMBER, templateLang } from "@/lib/whatsapp";
+import { scoreResponse } from "@/lib/edd-flow";
 
 export const PHONE_KEY = "edsquare.demo.phone";
 const BANK = "Airtel Payments Bank";
@@ -186,7 +187,10 @@ export function RealWhatsAppPanel(p: Common) {
   const pin = p.profile.pincode;
   const decoys = [String(Number(pin) + 3), String(Number(pin) + 11)];
   const toCustomer = (q: ScriptQuestion) => ({ id: q.id, text: q.kind === "pincode" ? q.text.replace("Can we have", "Please select") : q.text, options: q.kind === "pincode" ? [pin, ...decoys, "Other"] : q.options.map((o) => o.label) });
-  const fromCustomer = (a: Record<string, string>) => Object.fromEntries(p.qs.map((q) => [q.id, q.kind === "pincode" ? (a[q.id] === pin ? "Matches our records" : "Different pincode") : a[q.id]!]).filter(([, v]) => v));
+  const fromCustomer = (a: Record<string, string>) => Object.fromEntries(p.qs.flatMap((q) => {
+    const answer = a[q.id];
+    return answer ? [[q.id, q.kind === "pincode" ? (answer === pin ? "Matches our records" : "Different pincode") : answer]] : [];
+  }));
 
   async function go() {
     if (!validPhone(phone) || used >= MAX) return;
@@ -212,18 +216,26 @@ export function RealWhatsAppPanel(p: Common) {
       setStage("waiting");
       setPopup(true);
       clearInterval(timer.current);
+      let polling = false;
+      let completed = false;
       timer.current = setInterval(async () => {
+        if (polling || completed) return;
+        polling = true;
         try {
           const q = await read({ data: { token } });
           if (q?.status === "submitted" && q.answers) {
+            completed = true;
             clearInterval(timer.current);
-            setTimeout(() => setPopup(false), 1500);
+            setPopup(false);
             setStage("done");
             p.onLog({ ok: true, text: "Customer submitted the questionnaire from their phone." });
-            p.onQuestionnaire?.(qrec("submitted", new Date().toISOString()));
-            p.onAnswers(fromCustomer(q.answers));
+            const answers = fromCustomer(q.answers);
+            const result = scoreResponse(p.qs, answers, p.profile, p.alert.type);
+            p.onQuestionnaire?.({ ...qrec("submitted", q.submittedAt ?? new Date().toISOString()), answers: result.answers, flag: result.flag, colour: result.outcome.colour });
+            p.onAnswers(answers);
           }
         } catch (e) { setErr(e instanceof Error ? e.message : "Polling failed."); }
+        finally { polling = false; }
       }, 4000);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Send failed."); setStage("idle");
