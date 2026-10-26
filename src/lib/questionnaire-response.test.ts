@@ -4,7 +4,7 @@ import { scoreResponse } from "@/lib/edd-flow";
 
 const profile = cbsProfiles[0];
 if (!profile) throw new Error("Missing test profile");
-const questions: ScriptQuestion[] = [{ id: "response", text: "Confirm transaction", kind: "test", options: [{ label: "Genuine", points: 0 }, { label: "Suspicious", points: 11 }] }];
+const questions: ScriptQuestion[] = [{ id: "response", text: "Confirm transaction", options: [{ label: "Genuine", points: 0 }, { label: "Suspicious", points: 11 }] }];
 
 describe("Customer questionnaire submission", () => {
   it("scores the received answers, not an earlier empty UI response", () => {
