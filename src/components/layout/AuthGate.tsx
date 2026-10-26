@@ -35,9 +35,26 @@ function LoginScreen() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    setBusy(false);
-    if (error) setError("Wrong email or password.");
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) {
+        if (error.code === "invalid_credentials") {
+          setError("Wrong email or password.");
+        } else if (error.code === "email_not_confirmed") {
+          setError("Please confirm your email before signing in.");
+        } else if (!error.status || error.status >= 500) {
+          setError("Unable to connect to sign-in. Check your connection and try again.");
+        } else if (error.status === 429) {
+          setError("Too many sign-in attempts. Please wait a moment and try again.");
+        } else {
+          setError("Sign-in is unavailable right now. Please try again.");
+        }
+      }
+    } catch {
+      setError("Unable to connect to sign-in. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
