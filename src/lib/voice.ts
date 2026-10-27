@@ -8,7 +8,7 @@ export interface VoiceDispatchInput {
     credit_amt: string;
     credit_date: string;
     recent_credit_amt: string;
-    preferred_language: "ENGLISH" | "HINDI";
+    preferred_language: "ENGLISH" | "HI";
   };
 }
 
@@ -27,13 +27,16 @@ export const prettyPhone = (d: string) => (d.length === 12 && d.startsWith("91")
 /** "RAKESH roshon" -> "Rakesh Roshon" (partner requires normal capitals). */
 export const normalName = (s: string) => s.trim().toLowerCase().replace(/\b\p{L}/gu, (c) => c.toUpperCase());
 
+/** Voice partner language code: Hindi is sent as "HI". */
+export const voiceLang = (lang: string): "ENGLISH" | "HI" => (lang === "HINDI" ? "HI" : "ENGLISH");
+
 export function validateVoiceDispatch(i: VoiceDispatchInput): string | null {
   if (!/^\d{10,15}$/.test(i.phone ?? "")) return "Mobile number must be 10 to 15 digits with country code and no + (e.g. 919081657821).";
   const s = i.session;
   if (!s?.customer_name?.trim() || s.customer_name.length > 80) return "Customer name is required.";
   if (!s.bank_name?.trim() || s.bank_name.length > 80) return "Bank name is required.";
   if (!/^\d{4}$/.test(s.acct_last4 ?? "")) return "Account last 4 digits are required.";
-  if (s.preferred_language !== "ENGLISH" && s.preferred_language !== "HINDI") return "Language must be English or Hindi.";
+  if (s.preferred_language !== "ENGLISH" && s.preferred_language !== "HI") return "Language must be English or Hindi.";
   return null;
 }
 
