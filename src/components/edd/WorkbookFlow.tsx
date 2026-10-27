@@ -96,7 +96,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
   const channel = phase === "voice" ? "voice" : "bitly";
   const script = scriptFor(alert, channel);
   const qs = questionsFor(script, alert.amount, alert.date, alert.credits.reduce((a, b) => a + b, 0), alert.debits.reduce((a, b) => a + b, 0));
-  const flag = responseFlag(qs, answers, profile, alert.type);
+  const flag = responseFlag(qs, answers, profile, alert.type, th);
   const merchant = isMerchant(profile);
   useEffect(() => setCname(normalName(alert.holder)), [alert.holder]);
   const contact: Contact = { phone: normalisePhone(raw), name: cname, lang };
@@ -228,7 +228,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
     record(entry(name, "Answers scored", scored.map((a) => `${a.answer} (+${a.points})`).join("; ") || "No answers"));
     const skipped = qs.filter((q) => !received[q.id]).map((q) => q.text);
     if (skipped.length) {
-      const note = `Customer did not answer ${skipped.length} of ${qs.length} question(s): ${skipped.join("; ")}. Scored on the answers given.`;
+      const note = `Customer did not answer ${skipped.length} of ${qs.length} question(s): ${skipped.join("; ")}. Each unanswered question adds ${th.unansweredPoints} risk points (+${skipped.length * th.unansweredPoints}).`;
       record(entry(name, "Questions not answered", note));
       add(name, "Amber", note);
     }
@@ -388,7 +388,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
           <Card>
             <CardHeader><CardTitle className="text-base">Decision Manager thresholds</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-2">
-              {([["minAmount", "Min amount (Rs)"], ["avgMultiple", "x avg daily credit"], ["creditSharePct", "% of 2-day credits"], ["flagBlock", "Flag: block above"], ["flagReview", "Flag: review from"], ["voiceRetries", "Voice retries"]] as const).map(([k, l]) => (
+              {([["minAmount", "Min amount (Rs)"], ["avgMultiple", "x avg daily credit"], ["creditSharePct", "% of 2-day credits"], ["flagBlock", "Flag: block above"], ["flagReview", "Flag: review from"], ["voiceRetries", "Voice retries"], ["unansweredPoints", "Points per unanswered"]] as const).map(([k, l]) => (
                 <div key={k} className="space-y-1"><Label className="text-xs">{l}</Label><Input type="number" value={th[k]} disabled={running} onChange={(e) => setTh({ ...th, [k]: Number(e.target.value) })} /></div>
               ))}
             </CardContent>

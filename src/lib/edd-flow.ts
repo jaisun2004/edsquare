@@ -10,9 +10,10 @@ export interface Thresholds {
   flagBlock: number; // flag > this => block
   flagReview: number; // flag >= this (and <= flagBlock) => block if not merchant
   voiceRetries: number;
+  unansweredPoints: number; // risk points added for each question the customer did not answer
 }
 
-export const defaultThresholds: Thresholds = { minAmount: 5000, avgMultiple: 2, creditSharePct: 20, flagBlock: 10, flagReview: 8, voiceRetries: 3 };
+export const defaultThresholds: Thresholds = { minAmount: 5000, avgMultiple: 2, creditSharePct: 20, flagBlock: 10, flagReview: 8, voiceRetries: 3, unansweredPoints: 3 };
 
 /** status: "fired" = this rule blocked; "also" = rule is true but an earlier rule already blocked; "pass" = not true. */
 export interface Check { id: string; label: string; fired: boolean; detail: string; status: "fired" | "also" | "pass" }
@@ -61,8 +62,9 @@ export function answerPoints(q: ScriptQuestion, answer: string, p: CbsProfile, a
   return q.options.find((o) => o.label === answer)?.points ?? 0;
 }
 
-export function responseFlag(qs: ScriptQuestion[], answers: Record<string, string>, p: CbsProfile, type: "I4C" | "Model") {
-  return qs.reduce((s, q) => s + (answers[q.id] ? answerPoints(q, answers[q.id]!, p, type) : 0), 0);
+export function responseFlag(qs: ScriptQuestion[], answers: Record<string, string>, p: CbsProfile, type: "I4C" | "Model", t: Thresholds = defaultThresholds) {
+  // Silence is not a clean answer: a question the customer did not answer adds risk points instead of 0.
+  return qs.reduce((s, q) => s + (answers[q.id] ? answerPoints(q, answers[q.id]!, p, type) : t.unansweredPoints), 0);
 }
 
 export function scriptFor(alert: WorkbookAlert, channel: "voice" | "bitly"): ScriptKey {
@@ -88,12 +90,16 @@ export function stepOutcome(flag: number, merchant: boolean, t: Thresholds = def
 
 /** Score the supplied response directly, without waiting for UI state to update. */
 export function scoreResponse(qs: ScriptQuestion[], answers: Record<string, string>, profile: CbsProfile, type: "I4C" | "Model", thresholds: Thresholds = defaultThresholds) {
-  const scored = qs.flatMap((q) => {
+  // Questions the customer declined or left blank are scored, not dropped: each adds unansweredPoints risk points.
+  const scored = qs.map((q) => {
     const answer = answers[q.id];
-    return answer ? [{ question: q.text, answer, points: answerPoints(q, answer, profile, type) }] : [];
+    return answer
+      ? { question: q.text, answer, points: answerPoints(q, answer, profile, type) }
+      : { question: q.text, answer: "Not answered", points: thresholds.unansweredPoints };
   });
   const flag = scored.reduce((sum, a) => sum + a.points, 0);
-  return { answers: scored, flag, outcome: stepOutcome(flag, isMerchant(profile), thresholds) };
+  const unanswered = qs.filter((q) => !answers[q.id]).length;
+  return { answers: scored, flag, unanswered, outcome: stepOutcome(flag, isMerchant(profile), thresholds) };
 }
 
 /** Where "no response" at a step leads, per the sheet. */
