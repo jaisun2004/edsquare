@@ -96,7 +96,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
   const channel = phase === "voice" ? "voice" : "bitly";
   const script = scriptFor(alert, channel);
   const qs = questionsFor(script, alert.amount, alert.date, alert.credits.reduce((a, b) => a + b, 0), alert.debits.reduce((a, b) => a + b, 0));
-  const flag = responseFlag(qs, answers, profile, alert.type);
+  const flag = responseFlag(qs, answers, profile, alert.type, th);
   const merchant = isMerchant(profile);
   useEffect(() => setCname(normalName(alert.holder)), [alert.holder]);
   const contact: Contact = { phone: normalisePhone(raw), name: cname, lang };
@@ -228,7 +228,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
     record(entry(name, "Answers scored", scored.map((a) => `${a.answer} (+${a.points})`).join("; ") || "No answers"));
     const skipped = qs.filter((q) => !received[q.id]).map((q) => q.text);
     if (skipped.length) {
-      const note = `Customer did not answer ${skipped.length} of ${qs.length} question(s): ${skipped.join("; ")}. Scored on the answers given.`;
+      const note = `Customer did not answer ${skipped.length} of ${qs.length} question(s): ${skipped.join("; ")}. Each unanswered question adds ${th.unansweredPoints} risk points (+${skipped.length * th.unansweredPoints}).`;
       record(entry(name, "Questions not answered", note));
       add(name, "Amber", note);
     }
@@ -388,7 +388,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
           <Card>
             <CardHeader><CardTitle className="text-base">Decision Manager thresholds</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-2">
-              {([["minAmount", "Min amount (Rs)"], ["avgMultiple", "x avg daily credit"], ["creditSharePct", "% of 2-day credits"], ["flagBlock", "Flag: block above"], ["flagReview", "Flag: review from"], ["voiceRetries", "Voice retries"]] as const).map(([k, l]) => (
+              {([["minAmount", "Min amount (Rs)"], ["avgMultiple", "x avg daily credit"], ["creditSharePct", "% of 2-day credits"], ["flagBlock", "Flag: block above"], ["flagReview", "Flag: review from"], ["voiceRetries", "Voice retries"], ["unansweredPoints", "Points per unanswered"]] as const).map(([k, l]) => (
                 <div key={k} className="space-y-1"><Label className="text-xs">{l}</Label><Input type="number" value={th[k]} disabled={running} onChange={(e) => setTh({ ...th, [k]: Number(e.target.value) })} /></div>
               ))}
             </CardContent>
@@ -470,9 +470,12 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
                   ))}
                   <div className="flex items-center justify-between rounded-md border p-2 text-sm">
                     <span>Response flag: <b>{flag}</b> → <Badge variant="outline" className={colourCls[flagOutcome(flag, merchant, th)]}>{flagOutcome(flag, merchant, th)}</Badge></span>
-                    <Button size="sm" disabled={Object.keys(answers).length < qs.length} onClick={() => submitAnswers()}>{phase === "voice" ? "Confirm answers" : "Submit answers"}</Button>
+                    <Button size="sm" disabled={busy || Object.keys(answers).length === 0} onClick={() => submitAnswers()}>{phase === "voice" ? "Confirm answers" : "Submit answers"}</Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">Points are added when answers don't match Core Banking (employment, pin code, unknown sender, payment reason vs account type).</p>
+                  {qs.length - Object.keys(answers).length > 0 && (
+                    <p className="text-xs text-warning">{qs.length - Object.keys(answers).length} question(s) left unanswered: <b>+{(qs.length - Object.keys(answers).length) * th.unansweredPoints}</b> risk points ({th.unansweredPoints} each). Leave one unanswered to show the customer refused it.</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Points are added when answers don't match Core Banking (employment, pin code, unknown sender, payment reason vs account type). A question the customer does not answer adds {th.unansweredPoints} risk points.</p>
                 </div>
               )}
               </div>
