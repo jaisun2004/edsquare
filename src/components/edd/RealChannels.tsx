@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CbsProfile, ScriptQuestion, WorkbookAlert } from "@/data/workbook";
-import { callState, normalName, normalisePhone, prettyPhone } from "@/lib/voice";
+import { callState, normalName, normalisePhone, prettyPhone, voiceLang } from "@/lib/voice";
 import type { CallRecord, QuestionnaireRecord } from "@/data/edd";
 import { dispatchVoiceCall, getVoiceCall, type VoiceCallView } from "@/lib/voice.functions";
 import { extractCallAnswers } from "@/lib/rule-ai.functions";
