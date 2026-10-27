@@ -226,6 +226,12 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
       onQuestionnaire(last ? { ...last, outcome: "submitted", submittedAt: last.submittedAt ?? new Date().toISOString(), ...extra } : { id: `SIM-Q-${Date.now()}`, number: "simulated", real: false, sentAt: new Date().toISOString(), submittedAt: new Date().toISOString(), outcome: "submitted", ...extra });
     }
     record(entry(name, "Answers scored", scored.map((a) => `${a.answer} (+${a.points})`).join("; ") || "No answers"));
+    const skipped = qs.filter((q) => !received[q.id]).map((q) => q.text);
+    if (skipped.length) {
+      const note = `Customer did not answer ${skipped.length} of ${qs.length} question(s): ${skipped.join("; ")}. Scored on the answers given.`;
+      record(entry(name, "Questions not answered", note));
+      add(name, "Amber", note);
+    }
     add(name, o.colour, text);
     setAnswering(false);
     if (phase === "voice") {
@@ -254,9 +260,9 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
     play([{ from: "engine", to: step.includes("Voice") ? "voice" : "whatsapp", label: l.text, delay: 100, ...(l.ms !== undefined ? { ms: l.ms } : {}), ...(l.ok ? {} : { colour: "Red" as const }) }]);
   };
   const realAnswers = (a: Record<string, string>) => {
+    // Real call / questionnaire answers are scored straight away; questions the customer skipped or declined are listed, not re-asked.
     setAnswers(a);
-    if (phase === "bitly") submitAnswers(a);
-    else setAnswering(true);
+    submitAnswers(a);
   };
 
   const getSummary = async () => {
