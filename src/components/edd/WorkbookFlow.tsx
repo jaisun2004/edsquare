@@ -470,9 +470,12 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
                   ))}
                   <div className="flex items-center justify-between rounded-md border p-2 text-sm">
                     <span>Response flag: <b>{flag}</b> → <Badge variant="outline" className={colourCls[flagOutcome(flag, merchant, th)]}>{flagOutcome(flag, merchant, th)}</Badge></span>
-                    <Button size="sm" disabled={Object.keys(answers).length < qs.length} onClick={() => submitAnswers()}>{phase === "voice" ? "Confirm answers" : "Submit answers"}</Button>
+                    <Button size="sm" disabled={busy || Object.keys(answers).length === 0} onClick={() => submitAnswers()}>{phase === "voice" ? "Confirm answers" : "Submit answers"}</Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">Points are added when answers don't match Core Banking (employment, pin code, unknown sender, payment reason vs account type).</p>
+                  {qs.length - Object.keys(answers).length > 0 && (
+                    <p className="text-xs text-warning">{qs.length - Object.keys(answers).length} question(s) left unanswered: <b>+{(qs.length - Object.keys(answers).length) * th.unansweredPoints}</b> risk points ({th.unansweredPoints} each). Leave one unanswered to show the customer refused it.</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Points are added when answers don't match Core Banking (employment, pin code, unknown sender, payment reason vs account type). A question the customer does not answer adds {th.unansweredPoints} risk points.</p>
                 </div>
               )}
               </div>
