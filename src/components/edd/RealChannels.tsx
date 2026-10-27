@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CbsProfile, ScriptQuestion, WorkbookAlert } from "@/data/workbook";
-import { callState, normalName, normalisePhone, prettyPhone } from "@/lib/voice";
+import { callState, normalName, normalisePhone, prettyPhone, voiceLang } from "@/lib/voice";
 import type { CallRecord, QuestionnaireRecord } from "@/data/edd";
 import { dispatchVoiceCall, getVoiceCall, type VoiceCallView } from "@/lib/voice.functions";
 import { extractCallAnswers } from "@/lib/rule-ai.functions";
@@ -97,7 +97,7 @@ export function RealVoicePanel(p: Common & { attempt: number; retries: number })
     const started = new Date().toISOString();
     const rec = (v: VoiceCallView | undefined, outcome: CallRecord["outcome"], extra: Partial<CallRecord> = {}): CallRecord => ({ id: `CALL-${Date.parse(started)}`, attempt, number: maskNumber(phone), real: true, startedAt: v?.startedAt ?? started, endedAt: v?.endedAt ?? new Date().toISOString(), status: v?.status ?? outcome, outcome, disposition: v?.disposition, summary: v?.summary, recordingUrl: v?.recordingUrl, partnerRecordId: v?.callId, transcript: v?.transcript ?? [], ...extra });
     try {
-      const r = await dispatch({ data: { phone, session: { customer_name: normalName(name), bank_name: BANK, acct_last4: p.alert.account.slice(-4), credit_amt: inr(p.alert.amount), credit_date: p.alert.date, recent_credit_amt: String(recent), preferred_language: lang } } });
+      const r = await dispatch({ data: { phone, session: { customer_name: normalName(name), bank_name: BANK, acct_last4: p.alert.account.slice(-4), credit_amt: inr(p.alert.amount), credit_date: p.alert.date, recent_credit_amt: String(recent), preferred_language: voiceLang(lang) } } });
       p.onLog({ ok: r.ok, ms: r.ms, text: r.ok ? `Voice agent dialling ${maskNumber(phone)} (attempt ${attempt}).` : `Voice dispatch failed (${r.status || "no connection"}): ${r.body}` });
       if (!r.ok) { setErr(r.body); setStage("failed"); p.onCall?.(rec(undefined, "failed", { status: `dispatch failed ${r.status || ""}`.trim() })); return; }
       setStage("waiting");

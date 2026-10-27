@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalisePhone, validateVoiceDispatch } from "./voice";
+import { normalisePhone, validateVoiceDispatch, voiceLang } from "./voice";
 
 describe("normalisePhone", () => {
   it("adds 91 to a 10-digit number", () => expect(normalisePhone("9081657821")).toBe("919081657821"));
@@ -10,4 +10,9 @@ describe("normalisePhone", () => {
     const phone = normalisePhone("90816");
     expect(validateVoiceDispatch({ phone, session: { customer_name: "A", bank_name: "B", acct_last4: "1234", credit_amt: "1", credit_date: "d", recent_credit_amt: "1", preferred_language: "ENGLISH" } })).not.toBeNull();
   });
+});
+
+describe("voiceLang", () => {
+  it("sends HI for Hindi", () => expect(voiceLang("HINDI")).toBe("HI"));
+  it("sends ENGLISH for English", () => expect(voiceLang("ENGLISH")).toBe("ENGLISH"));
 });
