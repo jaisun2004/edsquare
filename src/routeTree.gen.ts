@@ -24,7 +24,9 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminConsentRouteImport } from './routes/admin.consent'
 import { Route as AdminIntegrationsRouteImport } from './routes/admin.integrations'
 import { Route as AdminPolicyRouteImport } from './routes/admin.policy'
+import { Route as AdminQueueRouteImport } from './routes/admin.queue'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminWorkflowsRouteImport } from './routes/admin.workflows'
 import { Route as CasesIndexRouteImport } from './routes/cases.index'
 import { Route as CasesCaseIdRouteImport } from './routes/cases.$caseId'
 import { Route as QTokenRouteImport } from './routes/q.$token'
@@ -110,9 +112,19 @@ const AdminPolicyRoute = AdminPolicyRouteImport.update({
   path: '/policy',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminQueueRoute = AdminQueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminWorkflowsRoute = AdminWorkflowsRouteImport.update({
+  id: '/workflows',
+  path: '/workflows',
   getParentRoute: () => AdminRoute,
 } as any)
 const CasesIndexRoute = CasesIndexRouteImport.update({
@@ -176,7 +188,9 @@ export interface FileRoutesByFullPath {
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/policy': typeof AdminPolicyRoute
+  '/admin/queue': typeof AdminQueueRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/workflows': typeof AdminWorkflowsRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/q/$token': typeof QTokenRoute
   '/s/$code': typeof SCodeRoute
@@ -202,7 +216,9 @@ export interface FileRoutesByTo {
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/policy': typeof AdminPolicyRoute
+  '/admin/queue': typeof AdminQueueRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/workflows': typeof AdminWorkflowsRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/q/$token': typeof QTokenRoute
   '/s/$code': typeof SCodeRoute
@@ -230,7 +246,9 @@ export interface FileRoutesById {
   '/admin/consent': typeof AdminConsentRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/policy': typeof AdminPolicyRoute
+  '/admin/queue': typeof AdminQueueRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/workflows': typeof AdminWorkflowsRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/q/$token': typeof QTokenRoute
   '/s/$code': typeof SCodeRoute
@@ -259,7 +277,9 @@ export interface FileRouteTypes {
     | '/admin/consent'
     | '/admin/integrations'
     | '/admin/policy'
+    | '/admin/queue'
     | '/admin/users'
+    | '/admin/workflows'
     | '/cases/$caseId'
     | '/q/$token'
     | '/s/$code'
@@ -285,7 +305,9 @@ export interface FileRouteTypes {
     | '/admin/consent'
     | '/admin/integrations'
     | '/admin/policy'
+    | '/admin/queue'
     | '/admin/users'
+    | '/admin/workflows'
     | '/cases/$caseId'
     | '/q/$token'
     | '/s/$code'
@@ -312,7 +334,9 @@ export interface FileRouteTypes {
     | '/admin/consent'
     | '/admin/integrations'
     | '/admin/policy'
+    | '/admin/queue'
     | '/admin/users'
+    | '/admin/workflows'
     | '/cases/$caseId'
     | '/q/$token'
     | '/s/$code'
@@ -450,11 +474,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPolicyRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/queue': {
+      id: '/admin/queue'
+      path: '/queue'
+      fullPath: '/admin/queue'
+      preLoaderRoute: typeof AdminQueueRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/users': {
       id: '/admin/users'
       path: '/users'
       fullPath: '/admin/users'
       preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/workflows': {
+      id: '/admin/workflows'
+      path: '/workflows'
+      fullPath: '/admin/workflows'
+      preLoaderRoute: typeof AdminWorkflowsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/cases/': {
@@ -527,7 +565,9 @@ interface AdminRouteChildren {
   AdminConsentRoute: typeof AdminConsentRoute
   AdminIntegrationsRoute: typeof AdminIntegrationsRoute
   AdminPolicyRoute: typeof AdminPolicyRoute
+  AdminQueueRoute: typeof AdminQueueRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  AdminWorkflowsRoute: typeof AdminWorkflowsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminRulesRuleIdRoute: typeof AdminRulesRuleIdRoute
   AdminRulesNewRoute: typeof AdminRulesNewRoute
@@ -540,7 +580,9 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminConsentRoute: AdminConsentRoute,
   AdminIntegrationsRoute: AdminIntegrationsRoute,
   AdminPolicyRoute: AdminPolicyRoute,
+  AdminQueueRoute: AdminQueueRoute,
   AdminUsersRoute: AdminUsersRoute,
+  AdminWorkflowsRoute: AdminWorkflowsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminRulesRuleIdRoute: AdminRulesRuleIdRoute,
   AdminRulesNewRoute: AdminRulesNewRoute,
