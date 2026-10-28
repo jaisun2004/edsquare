@@ -45,7 +45,7 @@ export function buildSamples(now = Date.now()) {
     const alertId = `AL-SAMPLE-${i + 1}`;
     const number = `+91 ••••••${w.account.slice(-4)}`;
     const trigger = `${w.type === "I4C" ? "I4C complaint" : "Model alert"}: ${w.reason} (Rs ${w.amount.toLocaleString("en-IN")})`;
-    alerts.push({ id: alertId, source: w.type === "I4C" ? "External Intelligence" : "Risk Model", account: w.account, upi: "—", customer: w.holder, trigger, receivedAt: ago(now, base), preliminarySignal: "H", status: "Triaged", ...(s.caseId ? { caseId: s.caseId } : {}) });
+    alerts.push({ id: alertId, source: w.type === "I4C" ? "External Intelligence" : "Risk Model", feed: w.type === "I4C" ? "I4C" : "MODEL", account: w.account, upi: "—", customer: w.holder, trigger, receivedAt: ago(now, base), preliminarySignal: "H", status: "Triaged", ...(s.caseId ? { caseId: s.caseId } : {}) });
 
     const calls: CallRecord[] = [];
     if (s.call === "answered") {

@@ -41,6 +41,8 @@ export interface Rule {
 export interface Alert {
   id: string;
   source: "Negative Database" | "Fraud / AML Engine" | "Risk Model" | "CRM Complaint" | "External Intelligence";
+  /** Alert feed (I4C, NPCI, MODEL, NEGBASE); derived from source when absent. */
+  feed?: "I4C" | "NPCI" | "MODEL" | "NEGBASE" | undefined;
   account: string;
   upi: string;
   customer: string;
@@ -224,15 +226,15 @@ const inHrs = (h: number) => new Date(now + h * 3600_000).toISOString();
 
 export const alerts: Alert[] = [
   { id: "AL-1041", source: "Negative Database", account: "XXXX4417", upi: "rahul.mehra@okaxis", customer: "Rahul Mehra", trigger: "UPI handle found on betting collection page", receivedAt: hrs(2), preliminarySignal: "VH", status: "New" },
-  { id: "AL-1042", source: "Fraud / AML Engine", account: "XXXX9082", upi: "sneha.rao1@ybl", customer: "Sneha Rao", trigger: "Rapid pass-through, 22 counterparties in 3 days", receivedAt: hrs(4), preliminarySignal: "H", status: "New" },
+  { id: "AL-1042", feed: "NPCI", source: "Fraud / AML Engine", account: "XXXX9082", upi: "sneha.rao1@ybl", customer: "Sneha Rao", trigger: "Rapid pass-through, 22 counterparties in 3 days", receivedAt: hrs(4), preliminarySignal: "H", status: "New" },
   { id: "AL-1043", source: "Risk Model", account: "XXXX1120", upi: "kmurthy@okhdfcbank", customer: "K. Murthy", trigger: "Model score 0.71 — mule propensity", receivedAt: hrs(6), preliminarySignal: "M", status: "New" },
-  { id: "AL-1044", source: "CRM Complaint", account: "XXXX3388", upi: "quickjobs.hr@paytm", customer: "Imran Shaikh", trigger: "3 victim complaints — fake job offers", receivedAt: hrs(9), preliminarySignal: "VH", status: "New" },
+  { id: "AL-1044", feed: "I4C", source: "CRM Complaint", account: "XXXX3388", upi: "quickjobs.hr@paytm", customer: "Imran Shaikh", trigger: "3 victim complaints — fake job offers", receivedAt: hrs(9), preliminarySignal: "VH", status: "New" },
   { id: "AL-1045", source: "External Intelligence", account: "XXXX7761", upi: "deepa.k@ibl", customer: "Deepa Krishnan", trigger: "Handle referenced in scam Telegram channel", receivedAt: hrs(12), preliminarySignal: "H", status: "New" },
   { id: "AL-1046", source: "Risk Model", account: "XXXX5093", upi: "arvind.s@okicici", customer: "Arvind Suresh", trigger: "Salary account, benign velocity uplift", receivedAt: hrs(18), preliminarySignal: "L", status: "New" },
   { id: "AL-1047", source: "Fraud / AML Engine", account: "XXXX2210", upi: "shopmarttrend@ybl", customer: "Nikhil Bansal", trigger: "Structuring below ₹50k threshold", receivedAt: hrs(22), preliminarySignal: "H", status: "New" },
   { id: "AL-1048", source: "Negative Database", account: "XXXX6644", upi: "trader.pro9@okaxis", customer: "Vikas Yadav", trigger: "Fuzzy match to known investment-scam handle", receivedAt: hrs(26), preliminarySignal: "M", status: "New" },
-  { id: "AL-1049", source: "Risk Model", account: "XXXX8890", upi: "meena.g@okhdfcbank", customer: "Meena Gupta", trigger: "Dormant 120d then ₹4.2L throughput", receivedAt: hrs(30), preliminarySignal: "H", status: "New" },
-  { id: "AL-1050", source: "CRM Complaint", account: "XXXX7005", upi: "prime.subs@ybl", customer: "Rohit Nair", trigger: "Unauthorised subscription debits reported", receivedAt: hrs(34), preliminarySignal: "M", status: "New" },
+  { id: "AL-1049", feed: "NPCI", source: "Risk Model", account: "XXXX8890", upi: "meena.g@okhdfcbank", customer: "Meena Gupta", trigger: "Dormant 120d then ₹4.2L throughput", receivedAt: hrs(30), preliminarySignal: "H", status: "New" },
+  { id: "AL-1050", feed: "I4C", source: "CRM Complaint", account: "XXXX7005", upi: "prime.subs@ybl", customer: "Rohit Nair", trigger: "Unauthorised subscription debits reported", receivedAt: hrs(34), preliminarySignal: "M", status: "New" },
 ];
 
 function baseEnrichment(p: Partial<Enrichment> = {}): Enrichment {
