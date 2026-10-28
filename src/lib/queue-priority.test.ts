@@ -23,5 +23,6 @@ describe("queue priority", () => {
   it("maps CRM complaints to I4C unless a feed is set", () => {
     expect(feedOf({ source: "CRM Complaint" })).toBe("I4C");
     expect(feedOf({ source: "Risk Model", feed: "NPCI" })).toBe("NPCI");
+    expect(feedOf({ source: "External Intelligence", trigger: "I4C complaint: Investment scam" })).toBe("I4C");
   });
 });

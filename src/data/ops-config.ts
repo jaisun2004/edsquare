@@ -20,7 +20,8 @@ const bySource: Record<Alert["source"], FeedId> = {
   "Risk Model": "MODEL",
 };
 /** Which feed an alert came from: explicit feed first, else derived from its source. */
-export const feedOf = (a: Pick<Alert, "source"> & { feed?: FeedId | undefined }): FeedId => a.feed ?? bySource[a.source];
+export const feedOf = (a: Pick<Alert, "source"> & { feed?: FeedId | undefined; trigger?: string | undefined }): FeedId =>
+  a.feed ?? (a.trigger && /\bI4C\b/.test(a.trigger) ? "I4C" : bySource[a.source]);
 
 export type StepKind = "lien" | "vpa_cooling" | "negbase" | "data_checks" | "voice" | "whatsapp" | "email_app" | "manual_review" | "human_decision";
 export const STEP_LABELS: Record<StepKind, string> = {
