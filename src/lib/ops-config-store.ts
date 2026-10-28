@@ -1,6 +1,6 @@
 // Browser-persisted ops config (flows + queue weights), shared across pages.
 import { useEffect, useSyncExternalStore } from "react";
-import { defaultFlows, migrateFlow, defaultQueue, type FeedFlow, type QueueConfig } from "@/data/ops-config";
+import { defaultFlows, migrateFlow, migrateQueue, defaultQueue, type FeedFlow, type QueueConfig } from "@/data/ops-config";
 
 interface OpsConfig { flows: FeedFlow[]; queue: QueueConfig }
 const KEY = "edsquare-ops-config";
@@ -16,7 +16,7 @@ function load() {
     const raw = window.localStorage.getItem(KEY);
     if (raw) {
       const saved = JSON.parse(raw) as Partial<OpsConfig>;
-      state = { ...DEFAULT, ...saved, flows: (saved.flows ?? DEFAULT.flows).map(migrateFlow) };
+      state = { ...DEFAULT, ...saved, flows: (saved.flows ?? DEFAULT.flows).map(migrateFlow), queue: migrateQueue(saved.queue) };
     }
   } catch { /* ignore */ }
   subs.forEach((f) => f());
