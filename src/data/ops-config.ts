@@ -64,10 +64,11 @@ const s = (kind: StepKind, trigger: Trigger = "always", extra: Partial<FlowStep>
 export function groupSteps(steps: FlowStep[]): FlowBlock[] {
   const out: FlowBlock[] = [];
   for (const st of steps) {
-    const name = BLOCK_NAMES[blockOfKind[st.kind]];
+    const name: string = BLOCK_NAMES[blockOfKind[st.kind]] ?? "Steps";
     const last = out[out.length - 1];
     if (last && last.name === name) { last.steps.push({ ...st, trigger: "always" }); continue; }
-    out.push({ id: `bl-${++bn}`, name, enabled: true, trigger: st.trigger, amount: st.amount, steps: [{ ...st, trigger: "always", amount: undefined }] });
+    const { amount, ...rest } = st;
+    out.push({ id: `bl-${++bn}`, name, enabled: true, trigger: st.trigger, ...(amount !== undefined ? { amount } : {}), steps: [{ ...rest, trigger: "always" }] });
   }
   return out;
 }
