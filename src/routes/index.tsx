@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-  Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart,
+  Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { AlertTriangle, IndianRupee, ShieldAlert, Timer, Zap, Bell, FolderOpen, Briefcase } from "lucide-react";
@@ -420,7 +420,6 @@ function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis dataKey="name" {...axis} /><YAxis {...axis} unit="%" domain={[0, 100]} />
                 <Tooltip {...tip} formatter={(v: number) => `${v}%`} />
-                <Line dataKey="value" />
                 <Bar dataKey="value" name="Reach" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
