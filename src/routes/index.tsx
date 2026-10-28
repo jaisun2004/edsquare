@@ -115,8 +115,8 @@ function DashboardPage() {
       for (const x of fjs) {
         if (new Date(x.alert.receivedAt).toDateString() !== key) continue;
         row[feedOf(x.alert)] = (row[feedOf(x.alert)] as number) + 1;
-        row.exposure = (row.exposure as number) + amt(x);
-        if (x.j.result === "System blocked" || x.j.result === "Blocked") row.protected = (row.protected as number) + amt(x);
+        row["exposure"] = (row["exposure"] as number) + amt(x);
+        if (x.j.result === "System blocked" || x.j.result === "Blocked") row["protected"] = (row["protected"] as number) + amt(x);
       }
       return row;
     });
