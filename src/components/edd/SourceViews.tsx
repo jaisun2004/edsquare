@@ -7,19 +7,23 @@ import { useEDD } from "@/lib/edd-store";
 
 export interface CaseFeedRow { c: EDDCase; feed: FeedId; riskScore: number; slaDueAt: string; openedAt: string }
 
-/** Open cases tagged with the feed of the alert that created them (default: bank model). */
+/** Open cases tagged with the feed of the alert that created them (fallback: same account, then case category). */
 export function useCaseFeeds(includeClosed = false): CaseFeedRow[] {
   const { cases } = useEDD();
   const js = useJourneys();
   return useMemo(() => {
     const map = new Map<string, FeedId>();
+    const byAccount = new Map<string, FeedId>();
     for (const { alert, j } of js) {
       const id = alert.caseId ?? j.caseItem?.id;
       if (id) map.set(id, feedOf(alert));
+      byAccount.set(alert.account, feedOf(alert));
     }
+    const byCategory = (c: EDDCase): FeedId =>
+      c.category === "Betting" || c.category === "Gambling" ? "NEGBASE" : c.category === "Mule" ? "NPCI" : c.category === "Carding" ? "MODEL" : "I4C";
     return cases
       .filter((c) => includeClosed || c.stage !== "Closed")
-      .map((c) => ({ c, feed: map.get(c.id) ?? "MODEL", riskScore: c.riskScore, slaDueAt: c.slaDueAt, openedAt: c.openedAt }));
+      .map((c) => ({ c, feed: map.get(c.id) ?? byAccount.get(c.account) ?? byCategory(c), riskScore: c.riskScore, slaDueAt: c.slaDueAt, openedAt: c.openedAt }));
   }, [cases, js, includeClosed]);
 }
 
