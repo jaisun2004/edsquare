@@ -46,7 +46,7 @@ function DashboardPage() {
   const allRows = useCaseFeeds();
   const [feed, setFeed] = useState<FeedId | "all">("all");
 
-  const inFeed = <T,>(f: FeedId) => feed === "all" || f === feed;
+  const inFeed = (f: FeedId) => feed === "all" || f === feed;
   const rows = allRows.filter((r) => inFeed(r.feed));
   const fjs = js.filter((x) => inFeed(feedOf(x.alert)));
   const open = rows.map((r) => r.c);
