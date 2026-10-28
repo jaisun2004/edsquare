@@ -6,6 +6,8 @@ export const adminSections = [
   { to: "/admin/sources", label: "Data sources" },
   { to: "/admin/rules", label: "Rules & thresholds" },
   { to: "/admin/policy", label: "Policy & hierarchy" },
+      { to: "/admin/workflows", label: "Workflows by source" },
+      { to: "/admin/queue", label: "Queue priority" },
   { to: "/admin/integrations", label: "Integrations" },
   { to: "/admin/users", label: "Users & roles" },
   { to: "/admin/consent", label: "Consent templates" },
