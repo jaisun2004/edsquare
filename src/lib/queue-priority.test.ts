@@ -7,7 +7,7 @@ const base = { riskScore: 50, slaDueAt: "2026-10-29T10:00:00Z", openedAt: "2026-
 
 describe("queue priority", () => {
   it("ranks an I4C case above a model case with the same risk", () => {
-    const ranked = rankQueue([{ ...base, feed: "MODEL" as const, id: "m" }, { ...base, feed: "I4C" as const, id: "i" }], defaultQueue, now);
+    const ranked = rankQueue([{ ...base, feed: "MODEL" as const, id: "m" }, { ...base, feed: "I4C" as const, id: "i" }], { ...defaultQueue, perFeed: undefined as never }, now);
     expect(ranked[0]!.item.id).toBe("i");
   });
   it("an overdue SLA gets the full SLA weight", () => {
