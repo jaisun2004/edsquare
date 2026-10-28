@@ -4,8 +4,10 @@ import { ChevronRight } from "lucide-react";
 import { STEP_LABELS, feedOf, type FeedFlow, type FeedId, type FlowStep, type StepKind } from "@/data/ops-config";
 import { useJourneys } from "@/components/edd/Journey";
 import { useEDD } from "@/lib/edd-store";
+import { amountAtRisk } from "@/lib/dashboard-metrics";
+import type { Alert } from "@/data/edd";
 
-export interface CaseFeedRow { c: EDDCase; feed: FeedId; riskScore: number; slaDueAt: string; openedAt: string }
+export interface CaseFeedRow { c: EDDCase; feed: FeedId; riskScore: number; slaDueAt: string; openedAt: string; amount: number; negHits: number; assignee: string; grade: EDDCase["grade"] }
 
 /** Open cases tagged with the feed of the alert that created them (fallback: same account, then case category). */
 export function useCaseFeeds(includeClosed = false): CaseFeedRow[] {
@@ -14,16 +16,18 @@ export function useCaseFeeds(includeClosed = false): CaseFeedRow[] {
   return useMemo(() => {
     const map = new Map<string, FeedId>();
     const byAccount = new Map<string, FeedId>();
+    const alertOf = new Map<string, Alert>();
     for (const { alert, j } of js) {
       const id = alert.caseId ?? j.caseItem?.id;
-      if (id) map.set(id, feedOf(alert));
+      if (id) { map.set(id, feedOf(alert)); alertOf.set(id, alert); }
       byAccount.set(alert.account, feedOf(alert));
     }
     const byCategory = (c: EDDCase): FeedId =>
       c.category === "Betting" || c.category === "Gambling" ? "NEGBASE" : c.category === "Mule" ? "NPCI" : c.category === "Carding" ? "MODEL" : "I4C";
     return cases
       .filter((c) => includeClosed || c.stage !== "Closed")
-      .map((c) => ({ c, feed: map.get(c.id) ?? byAccount.get(c.account) ?? byCategory(c), riskScore: c.riskScore, slaDueAt: c.slaDueAt, openedAt: c.openedAt }));
+      .map((c) => ({ c, feed: map.get(c.id) ?? byAccount.get(c.account) ?? byCategory(c), riskScore: c.riskScore, slaDueAt: c.slaDueAt, openedAt: c.openedAt,
+        amount: amountAtRisk(alertOf.get(c.id), c), negHits: c.enrichment?.negbaseAttributes?.length ?? 0, assignee: c.assignee, grade: c.grade }));
   }, [cases, js, includeClosed]);
 }
 

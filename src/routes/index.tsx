@@ -18,7 +18,7 @@ import { LatestCases } from "@/components/edd/DemoRuns";
 import { useEDD } from "@/lib/edd-store";
 import { FEEDS, feedOf, type FeedId } from "@/data/ops-config";
 import { useOpsConfig } from "@/lib/ops-config-store";
-import { rankQueue } from "@/lib/queue-priority";
+import { fmtMins, nextEscalation, rankQueue, suggestAssignee } from "@/lib/queue-priority";
 import { FlowPreview, useCaseFeeds } from "@/components/edd/SourceViews";
 import { ageBucket, amountAtRisk, horizonStart, slaBucket, type Horizon, type SlaFilter } from "@/lib/dashboard-metrics";
 import { roleLabels } from "@/lib/roles";
@@ -168,6 +168,7 @@ function DashboardPage() {
   const allCats = useMemo(() => [...new Set(allRows.map((r) => r.c.category))].sort(), [allRows]);
   const flow = feed === "all" ? undefined : flows.find((f) => f.feed === feed);
   const ranked = rankQueue(d.open, queue).slice(0, 8);
+  const loadMap = allRows.filter((r) => r.c.stage !== "Closed").reduce<Record<string, number>>((m, r) => ({ ...m, [r.assignee]: (m[r.assignee] ?? 0) + 1 }), {});
   const mine = d.open.filter((r) => r.c.assignee === actor).length;
   const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
   const filtersOn = horizon !== "all" || grades.length || category !== "all" || sla !== "all" || outcome !== "all";
@@ -436,11 +437,11 @@ function DashboardPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow><TableHead>Case</TableHead><TableHead>Customer</TableHead><TableHead>Source</TableHead><TableHead>Category</TableHead><TableHead>Stage</TableHead><TableHead>Risk</TableHead><TableHead>SLA</TableHead><TableHead className="text-right">Priority</TableHead></TableRow>
+              <TableRow><TableHead>Case</TableHead><TableHead>Customer</TableHead><TableHead>Source</TableHead><TableHead>Category</TableHead><TableHead>Stage</TableHead><TableHead>Risk</TableHead><TableHead>SLA</TableHead><TableHead>Suggested</TableHead><TableHead>Escalates</TableHead><TableHead className="text-right">Priority</TableHead></TableRow>
             </TableHeader>
             <TableBody>
-              {ranked.length === 0 && <TableRow><TableCell colSpan={8} className="py-6 text-center text-muted-foreground">No open cases match these filters.</TableCell></TableRow>}
-              {ranked.map(({ item, score }) => (
+              {ranked.length === 0 && <TableRow><TableCell colSpan={10} className="py-6 text-center text-muted-foreground">No open cases match these filters.</TableCell></TableRow>}
+              {ranked.map(({ item, score }, i) => { const fq = queue.perFeed[item.feed]; const esc = nextEscalation(item, fq, flows.find((f) => f.feed === item.feed)?.slaMin ?? 60); return (
                 <TableRow key={item.c.id}>
                   <TableCell className="font-medium"><Link to="/cases/$caseId" params={{ caseId: item.c.id }} className="hover:underline">{item.c.id}</Link></TableCell>
                   <TableCell>{item.c.customer}</TableCell>
@@ -449,9 +450,11 @@ function DashboardPage() {
                   <TableCell><StageBadge stage={item.c.stage} /></TableCell>
                   <TableCell><RiskChip grade={item.c.grade} score={item.c.riskScore} /></TableCell>
                   <TableCell><SlaBadge dueAt={item.c.slaDueAt} /></TableCell>
+                  <TableCell className="text-xs">{suggestAssignee(item, fq, loadMap, { turn: i }) ?? "Team pick"}</TableCell>
+                  <TableCell className={`text-xs ${esc?.due ? "text-destructive" : ""}`}>{esc ? `L${esc.level} ${esc.due ? "now" : fmtMins(esc.inMin)}` : "—"}</TableCell>
                   <TableCell className="text-right font-semibold">{score}</TableCell>
                 </TableRow>
-              ))}
+              ); })}
             </TableBody>
           </Table>
         </CardContent>

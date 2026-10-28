@@ -89,8 +89,66 @@ export const defaultFlows: FeedFlow[] = [
 ];
 
 export interface QueueWeights { risk: number; sla: number; source: number; age: number }
-export interface QueueConfig { weights: QueueWeights; feedPriority: Record<FeedId, number> }
+
+/** Per-source queue: what comes first, who works it, when it escalates. */
+export type FeedFactor = "risk" | "sla" | "amount" | "age" | "negHits";
+export type FeedWeights = Record<FeedFactor, number>;
+export type PresetId = "deadline" | "money" | "risk" | "repeat" | "custom";
+export const PRESETS: Record<Exclude<PresetId, "custom">, { label: string; weights: FeedWeights }> = {
+  deadline: { label: "Deadline first", weights: { sla: 3, amount: 2, risk: 1, age: 0, negHits: 0 } },
+  money: { label: "Fastest money first", weights: { amount: 3, sla: 2, risk: 1, age: 0, negHits: 0 } },
+  risk: { label: "Riskiest first", weights: { risk: 3, age: 2, sla: 1, amount: 0, negHits: 0 } },
+  repeat: { label: "Repeat offenders first", weights: { negHits: 3, risk: 2, sla: 1, amount: 0, age: 0 } },
+};
+export type DistMode = "round_robin" | "least_loaded" | "skill" | "pull";
+export const DIST_LABELS: Record<DistMode, string> = {
+  round_robin: "Round robin (take turns)",
+  least_loaded: "Least busy first",
+  skill: "Skill / language match",
+  pull: "Pick from queue (people pull work)",
+};
+export interface Member { name: string; role: "analyst" | "investigator" | "supervisor"; cap: number; langs: string[]; senior: boolean }
+export type EscTrigger = "unassigned_min" | "sla_pct" | "sla_breached" | "at_capacity" | "high_risk_idle";
+export type EscAction = "notify" | "reassign" | "move_desk" | "raise_priority";
+export const ESC_TRIGGER_LABELS: Record<EscTrigger, string> = {
+  unassigned_min: "If unassigned for (min)",
+  sla_pct: "If share of SLA used reaches (%)",
+  sla_breached: "If SLA is breached",
+  at_capacity: "If the assignee is at capacity",
+  high_risk_idle: "If high risk and no action for (min)",
+};
+export const ESC_ACTION_LABELS: Record<EscAction, string> = { notify: "notify", reassign: "reassign to", move_desk: "move to desk", raise_priority: "raise priority" };
+export interface EscLevel { id: string; trigger: EscTrigger; value?: number; action: EscAction; target: string }
+export interface FeedQueue {
+  preset: PresetId;
+  weights: FeedWeights;
+  overrides: { breachedTop: boolean; amountTopGte?: number | undefined };
+  distribution: { mode: DistMode; members: Member[]; seniorOnlyVH: boolean };
+  escalation: EscLevel[];
+}
+const m = (name: string, role: Member["role"], cap: number, senior = false, langs = ["English", "Hindi"]): Member => ({ name, role, cap, langs, senior });
+export const defaultPerFeed: Record<FeedId, FeedQueue> = {
+  I4C: { preset: "deadline", weights: PRESETS.deadline.weights, overrides: { breachedTop: true, amountTopGte: 100000 },
+    distribution: { mode: "least_loaded", members: [m("Arjun Rao", "investigator", 6, true), m("Priya Nair", "analyst", 8)], seniorOnlyVH: true },
+    escalation: [{ id: "e1", trigger: "unassigned_min", value: 10, action: "reassign", target: "Supervisor" }, { id: "e2", trigger: "sla_pct", value: 80, action: "notify", target: "Supervisor" }, { id: "e3", trigger: "sla_breached", action: "notify", target: "Nodal officer" }] },
+  NPCI: { preset: "money", weights: PRESETS.money.weights, overrides: { breachedTop: true },
+    distribution: { mode: "round_robin", members: [m("Priya Nair", "analyst", 10), m("Arjun Rao", "investigator", 6, true)], seniorOnlyVH: false },
+    escalation: [{ id: "e1", trigger: "unassigned_min", value: 5, action: "reassign", target: "Supervisor" }, { id: "e2", trigger: "sla_breached", action: "raise_priority", target: "Switch operations" }] },
+  MODEL: { preset: "risk", weights: PRESETS.risk.weights, overrides: { breachedTop: false },
+    distribution: { mode: "pull", members: [m("Priya Nair", "analyst", 12), m("Arjun Rao", "investigator", 8, true)], seniorOnlyVH: true },
+    escalation: [{ id: "e1", trigger: "sla_pct", value: 75, action: "notify", target: "Supervisor" }, { id: "e2", trigger: "sla_breached", action: "reassign", target: "Investigator" }] },
+  NEGBASE: { preset: "repeat", weights: PRESETS.repeat.weights, overrides: { breachedTop: true },
+    distribution: { mode: "skill", members: [m("Arjun Rao", "investigator", 8, true), m("Priya Nair", "analyst", 8, false, ["English"])], seniorOnlyVH: false },
+    escalation: [{ id: "e1", trigger: "high_risk_idle", value: 60, action: "move_desk", target: "Nodal / LEA desk" }, { id: "e2", trigger: "sla_breached", action: "notify", target: "Supervisor" }] },
+};
+
+export interface QueueConfig { weights: QueueWeights; feedPriority: Record<FeedId, number>; perFeed: Record<FeedId, FeedQueue> }
 export const defaultQueue: QueueConfig = {
   weights: { risk: 40, sla: 30, source: 20, age: 10 },
   feedPriority: { I4C: 100, NPCI: 80, NEGBASE: 60, MODEL: 40 },
+  perFeed: defaultPerFeed,
 };
+/** Fills in per-source settings missing from older saved configs. */
+export const migrateQueue = (q: Partial<QueueConfig> | undefined): QueueConfig => ({
+  ...defaultQueue, ...q, perFeed: { ...defaultPerFeed, ...(q?.perFeed ?? {}) },
+});
