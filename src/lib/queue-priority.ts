@@ -107,7 +107,7 @@ export function reasonChips(c: PriorityInput, now = Date.now()): string[] {
  * go only to senior members. `load` is each member's current open-case count.
  */
 export function suggestAssignee(
-  c: PriorityInput, q: FeedQueue, load: Record<string, number>, opts: { turn?: number; lang?: string } = {},
+  c: PriorityInput, q: FeedQueue, load: Record<string, number>, opts: { turn?: number | undefined; lang?: string | undefined } = {},
 ): string | undefined {
   if (q.distribution.mode === "pull") return undefined;
   let pool: Member[] = q.distribution.members.filter((m) => (load[m.name] ?? 0) < m.cap);
