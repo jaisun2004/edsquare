@@ -9,7 +9,7 @@ export const adminGroups = [
   { label: "3 · Actions", items: [{ to: "/admin/workflows", label: "Workflows & score bands" }, { to: "/admin/queue", label: "Queue priority" }] },
   { label: "Setup", items: [{ to: "/admin/users", label: "Users & roles" }, { to: "/admin/consent", label: "Consent templates" }] },
 ] as const;
-export const adminSections = adminGroups.flatMap((g) => g.items);
+export const adminSections = adminGroups.flatMap((g): readonly { to: string; label: string }[] => g.items);
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
