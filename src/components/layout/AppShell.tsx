@@ -90,6 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                         <Link
                           key={child.to}
                           to={child.to}
+                          activeOptions={{ exact: child.to === "/admin" }}
                           className="block rounded-md px-3 py-1.5 text-xs text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                           activeProps={{ className: "bg-sidebar-accent text-sidebar-accent-foreground font-medium" }}
                         >
