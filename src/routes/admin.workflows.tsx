@@ -156,7 +156,6 @@ function WorkflowsPage() {
                   {num("flagBlock", "Keep blocked above")}
                   {num("flagReview", "Review from")}
                   {num("unansweredPoints", "Points per unanswered")}
-                  {b.steps.some((x) => x.kind === "voice") && num("voiceRetries", "Call retries")}
                 </div>
                 <p className="text-[11px] text-muted-foreground">"If previous block red" triggers use these bands: a score above the block band counts as red.</p>
               </div>

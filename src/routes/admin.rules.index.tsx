@@ -13,6 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { RISK_BANDS } from "@/data/edd";
 import { useEDD } from "@/lib/edd-store";
 import { checkRule, describeRule } from "@/lib/rule-engine";
+import { ruleSources, ruleUsage } from "@/lib/decision-graph";
+import { useOpsConfig } from "@/lib/ops-config-store";
 
 export const Route = createFileRoute("/admin/rules/")({
   head: () => ({
@@ -109,6 +111,7 @@ function RulesPage() {
                 <TableHead>Name &amp; logic</TableHead>
                 <TableHead>Group</TableHead>
                 <TableHead>Weight / route</TableHead>
+                <TableHead>Used in</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">On</TableHead>
               </TableRow>
@@ -127,6 +130,10 @@ function RulesPage() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{ruleGroups.find((g) => g.id === r.groupId)?.name}</TableCell>
                   <TableCell className="text-sm">{r.action.outcome ? <Badge variant="outline">{r.action.outcome}</Badge> : `+${r.action.weight}`}</TableCell>
+                  <TableCell className="text-xs">
+                    {(usage[r.id] ?? []).length ? <div className="flex flex-wrap gap-1">{usage[r.id]!.map((f) => <Link key={f} to="/admin/workflows"><Badge variant="secondary">{f} · Data checks</Badge></Link>)}</div> : <span className="text-destructive">Not used</span>}
+                    <p className="mt-1 text-muted-foreground">{ruleSources(r, attributes).map((id) => sources.find((x) => x.id === id)?.name ?? id).join(", ") || "Computed"}</p>
+                  </TableCell>
                   <TableCell><Badge variant={r.status === "Active" ? "secondary" : "outline"}>{r.status}</Badge></TableCell>
                   <TableCell className="text-right">
                     <Switch checked={r.active} disabled={role !== "admin" || r.status === "Retired"} onCheckedChange={() => toggleRule(r.id)} />
