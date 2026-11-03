@@ -11,10 +11,10 @@ describe("decision graph", () => {
     const u = ruleUsage(defaultFlows, seedRuleDefs, seedRuleGroups);
     expect(u["HS-01"]).toEqual(["I4C", "NPCI"]);
   });
-  it("a feed with Data checks switched off runs no rule sets", () => {
+  it("a feed with all check steps switched off runs no rule sets", () => {
     const flows = clone(defaultFlows);
     const i4c = flows.find((f) => f.feed === "I4C")!;
-    for (const b of i4c.blocks) for (const s of b.steps) if (s.kind === "data_checks") s.enabled = false;
+    for (const b of i4c.blocks) for (const s of b.steps) if (["lien", "negbase", "data_checks"].includes(s.kind)) s.enabled = false;
     expect(activeSets(i4c)).toEqual([]);
     expect(setUsage(flows)["S-HARD"]).toEqual(["NPCI"]);
   });

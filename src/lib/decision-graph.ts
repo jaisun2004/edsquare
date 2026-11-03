@@ -1,9 +1,10 @@
 // Pure links between Decision Manager parts: source -> feed workflow -> block -> rule sets -> rules -> fields.
 import type { RuleDef, RuleGroup, RuleSet, Condition } from "@/data/policy";
 import type { Attribute, DataSource } from "@/data/sources";
-import { FEEDS, type FeedFlow, type FeedId } from "@/data/ops-config";
+import { FEEDS, blockOfKind, type FeedFlow, type FeedId } from "@/data/ops-config";
 
-const checksOn = (f: FeedFlow) => f.blocks.some((b) => b.enabled && b.steps.some((s) => s.enabled && s.kind === "data_checks"));
+/** Rule sets run in the first (checks) block: any enabled check step (lien, VPA cooling, Negative DB, data checks). */
+const checksOn = (f: FeedFlow) => f.blocks.some((b) => b.enabled && b.steps.some((s) => s.enabled && blockOfKind[s.kind] === 0));
 
 /** Rule sets that actually run for a feed (empty if its Data checks step is switched off). */
 export const activeSets = (f: FeedFlow): string[] => (checksOn(f) ? f.decision.ruleSets : []);
