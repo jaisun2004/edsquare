@@ -34,12 +34,13 @@ const nav = [
     label: "Decision Manager",
     icon: Settings,
     children: [
+      { to: "/admin", label: "How it connects" },
       { to: "/admin/sources", label: "Data sources" },
-      { to: "/admin/rules", label: "Rules & thresholds" },
-      { to: "/admin/policy", label: "Policy & hierarchy" },
-      { to: "/admin/workflows", label: "Workflows by source" },
-      { to: "/admin/queue", label: "Queue priority" },
       { to: "/admin/integrations", label: "Integrations" },
+      { to: "/admin/policy", label: "Policy & hierarchy" },
+      { to: "/admin/rules", label: "Rules" },
+      { to: "/admin/workflows", label: "Workflows & score bands" },
+      { to: "/admin/queue", label: "Queue priority" },
       { to: "/admin/users", label: "Users & roles" },
       { to: "/admin/consent", label: "Consent templates" },
     ],
@@ -89,6 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                         <Link
                           key={child.to}
                           to={child.to}
+                          activeOptions={{ exact: child.to === "/admin" }}
                           className="block rounded-md px-3 py-1.5 text-xs text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                           activeProps={{ className: "bg-sidebar-accent text-sidebar-accent-foreground font-medium" }}
                         >

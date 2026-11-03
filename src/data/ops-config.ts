@@ -1,5 +1,6 @@
 // Source-driven operations config: alert feeds, per-feed process flow and queue prioritisation.
 import type { Alert } from "@/data/edd";
+import { defaultThresholds, type Thresholds } from "@/lib/edd-flow";
 
 export type FeedId = "I4C" | "NPCI" | "MODEL" | "NEGBASE";
 
@@ -50,7 +51,13 @@ export const TRIGGER_LABELS: Record<Trigger, string> = {
 
 export interface FlowStep { id: string; kind: StepKind; enabled: boolean; trigger: Trigger; amount?: number; retries?: number; waitMin?: number }
 export interface FlowBlock { id: string; name: string; enabled: boolean; trigger: Trigger; amount?: number; steps: FlowStep[] }
-export interface FeedFlow { feed: FeedId; slaMin: number; desk: string; blocks: FlowBlock[] }
+/** Which policy rule sets the Data checks block runs, and the score bands the call / questionnaire blocks use. */
+export interface FeedDecision { ruleSets: string[]; thresholds: Thresholds }
+export interface FeedFlow { feed: FeedId; slaMin: number; desk: string; blocks: FlowBlock[]; decision: FeedDecision }
+const DEFAULT_SETS: Record<FeedId, string[]> = { I4C: ["S-HARD", "S-SCORE"], NPCI: ["S-HARD", "S-SCORE", "S-SEG"], MODEL: ["S-SCORE", "S-SEG", "S-OV"], NEGBASE: ["S-SCORE", "S-SEG"] };
+export const defaultDecision = (feed: FeedId): FeedDecision => ({ ruleSets: [...(DEFAULT_SETS[feed] ?? [])], thresholds: { ...defaultThresholds } });
+/** Blocks that make a decision: 0 = data checks (runs rule sets), 1 = call scoring, 2 = questionnaire scoring. */
+export const DECISION_BLOCKS: Record<string, "checks" | "score"> = { "Data checks": "checks", "Customer contact (voice)": "score", "Questionnaire (WhatsApp)": "score" };
 
 /** Default blocks, in scenario-sheet order (same groups as the Demo Simulator). */
 export const BLOCK_NAMES = ["Data checks", "Customer contact (voice)", "Questionnaire (WhatsApp)", "Email & app alert", "Exit / manual review", "Human review"] as const;
@@ -73,14 +80,16 @@ export function groupSteps(steps: FlowStep[]): FlowBlock[] {
   return out;
 }
 /** Accepts saved flows in the old flat-steps shape and returns block-based flows. */
-export function migrateFlow(f: FeedFlow | (Omit<FeedFlow, "blocks"> & { steps: FlowStep[] })): FeedFlow {
-  if ("blocks" in f && Array.isArray(f.blocks)) return f;
-  const { steps, ...rest } = f as Omit<FeedFlow, "blocks"> & { steps: FlowStep[] };
-  return { ...rest, blocks: groupSteps(steps ?? []) };
+export function migrateFlow(f: Partial<FeedFlow> & { feed: FeedId; steps?: FlowStep[] }): FeedFlow {
+  const d = defaultDecision(f.feed);
+  const decision: FeedDecision = { ruleSets: f.decision?.ruleSets ?? d.ruleSets, thresholds: { ...d.thresholds, ...(f.decision?.thresholds ?? {}) } };
+  const { steps, ...rest } = f;
+  const blocks = Array.isArray(f.blocks) ? f.blocks : groupSteps(steps ?? []);
+  return { slaMin: 60, desk: "", ...rest, blocks, decision } as FeedFlow;
 }
 export const flattenSteps = (f: FeedFlow): FlowStep[] => f.blocks.filter((b) => b.enabled).flatMap((b) => b.steps.filter((x) => x.enabled));
 
-const flow = (feed: FeedId, slaMin: number, desk: string, steps: FlowStep[]): FeedFlow => ({ feed, slaMin, desk, blocks: groupSteps(steps) });
+const flow = (feed: FeedId, slaMin: number, desk: string, steps: FlowStep[]): FeedFlow => ({ feed, slaMin, desk, blocks: groupSteps(steps), decision: defaultDecision(feed) });
 export const defaultFlows: FeedFlow[] = [
   flow("I4C", 30, "Nodal / LEA desk", [s("lien"), s("negbase"), s("data_checks"), s("voice", "always", { retries: 3 }), s("whatsapp", "prev_no_response", { waitMin: 60 }), s("email_app", "prev_no_response"), s("human_decision")]),
   flow("NPCI", 15, "Switch operations", [s("vpa_cooling"), s("negbase"), s("whatsapp", "amount_lt", { amount: 25000, waitMin: 10 }), s("voice", "prev_no_response", { retries: 2 }), s("manual_review", "prev_no_response"), s("human_decision")]),

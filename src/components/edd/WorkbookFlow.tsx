@@ -12,6 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cbsProfiles, greeting, questionsFor, workbookAlerts, type CbsProfile, type WorkbookAlert } from "@/data/workbook";
 import { toAttrs } from "@/data/scenarios";
+import { useOpsConfig } from "@/lib/ops-config-store";
+import { feedName } from "@/data/ops-config";
 import { negbaseLookup, afterVoice, answerPoints, dataChecks, defaultThresholds, stepOutcome, scoreResponse, SHEET_STEPS, exitOutcome, flagOutcome, isMerchant, responseFlag, scriptFor, type Check, type Colour, type Thresholds } from "@/lib/edd-flow";
 import { useEDD, type FlowLogEntry } from "@/lib/edd-store";
 import type { CallRecord, QuestionnaireRecord, TimelineEntry } from "@/data/edd";
@@ -108,6 +110,17 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoGo, phase, canRun]);
   const running = phase !== "idle";
+  // Score bands and retries come from the Decision Manager workflow for this alert's source.
+  const { flows } = useOpsConfig();
+  const feedId = alert.type === "I4C" ? "I4C" : "MODEL";
+  const feedFlow = flows.find((f) => f.feed === feedId);
+  const feedVoiceRetries = feedFlow?.blocks.flatMap((b) => b.steps).find((x) => x.kind === "voice")?.retries;
+  const feedKey = JSON.stringify([feedId, feedFlow?.decision.thresholds, feedVoiceRetries]);
+  useEffect(() => {
+    if (running || !feedFlow) return;
+    setTh({ ...feedFlow.decision.thresholds, ...(feedVoiceRetries ? { voiceRetries: feedVoiceRetries } : {}) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedKey]);
 
   const channelOf = (step: string): TimelineEntry["channel"] => step.includes("Voice") ? "voice" : step.includes("WhatsApp") || step.includes("Email") ? "whatsapp" : step.includes("Data") || step.includes("Check") ? "checks" : step.includes("decision") || step.includes("Exit") || step.includes("Case") ? "decision" : "system";
   const actorOf = (step: string) => step.includes("Voice") ? "AI voice agent" : step.includes("Human") ? store.actor : "EDSquare engine";
@@ -386,7 +399,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle className="text-base">Decision Manager thresholds</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Decision Manager thresholds</CardTitle><p className="text-xs text-muted-foreground">Using: {feedName(feedId)} workflow settings. <Link to="/admin/workflows" className="text-primary hover:underline">Change defaults</Link> · edits here apply to this run only.</p></CardHeader>
             <CardContent className="grid grid-cols-2 gap-2">
               {([["minAmount", "Min amount (Rs)"], ["avgMultiple", "x avg daily credit"], ["creditSharePct", "% of 2-day credits"], ["flagBlock", "Flag: block above"], ["flagReview", "Flag: review from"], ["voiceRetries", "Voice retries"], ["unansweredPoints", "Points per unanswered"]] as const).map(([k, l]) => (
                 <div key={k} className="space-y-1"><Label className="text-xs">{l}</Label><Input type="number" value={th[k]} disabled={running} onChange={(e) => setTh({ ...th, [k]: Number(e.target.value) })} /></div>

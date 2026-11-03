@@ -9,10 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { FEEDS, STEP_KINDS, STEP_LABELS, TRIGGER_LABELS, type FeedFlow, type FeedId, type FlowBlock, type FlowStep, type StepKind, type Trigger } from "@/data/ops-config";
+import { DECISION_BLOCKS, FEEDS, STEP_KINDS, STEP_LABELS, TRIGGER_LABELS, type FeedDecision, type FeedFlow, type FeedId, type FlowBlock, type FlowStep, type StepKind, type Trigger } from "@/data/ops-config";
 import { resetOpsConfig, setOpsConfig, useOpsConfig } from "@/lib/ops-config-store";
 import { useEDD } from "@/lib/edd-store";
 import { FlowPreview } from "@/components/edd/SourceViews";
+import { Link } from "@tanstack/react-router";
+import { bandText } from "@/lib/decision-graph";
+import type { Thresholds } from "@/lib/edd-flow";
 
 export const Route = createFileRoute("/admin/workflows")({
   head: () => ({
@@ -32,7 +35,7 @@ const channelKinds: StepKind[] = ["voice", "whatsapp", "email_app"];
 
 function WorkflowsPage() {
   const { flows } = useOpsConfig();
-  const { role } = useEDD();
+  const { role, ruleSets, ruleGroups, rules } = useEDD();
   const editable = role === "admin" || role === "supervisor";
   const [feed, setFeed] = useState<FeedId>("I4C");
   const [addKind, setAddKind] = useState<StepKind>("voice");
@@ -53,6 +56,14 @@ function WorkflowsPage() {
   const moveStep = (b: FlowBlock, i: number, d: -1 | 1) => { const r = swap(b.steps, i, d); if (r) setBlock(b.id, { steps: r }); };
   const toBlock = (from: FlowBlock, step: FlowStep, toId: string) =>
     setBlocks(flow.blocks.map((b) => (b.id === from.id ? { ...b, steps: b.steps.filter((x) => x.id !== step.id) } : b.id === toId ? { ...b, steps: [...b.steps, step] } : b)));
+  const setDecision = (patch: Partial<FeedDecision>) => save({ ...flow, decision: { ...flow.decision, ...patch } });
+  const setTh = (k: keyof Thresholds, v: number) => setDecision({ thresholds: { ...flow.decision.thresholds, [k]: v } });
+  const num = (k: keyof Thresholds, label: string, step = 1) => (
+    <label className="flex items-center gap-1 text-xs text-muted-foreground">{label}
+      <Input type="number" step={step} className="h-8 w-20" value={flow.decision.thresholds[k]} disabled={!editable} onChange={(e) => setTh(k, Number(e.target.value) || 0)} />
+    </label>
+  );
+  const sortedSets = [...ruleSets].sort((a, b) => a.order - b.order);
   const triggers = Object.keys(TRIGGER_LABELS) as Trigger[];
   let stepNo = 0;
 
@@ -115,6 +126,40 @@ function WorkflowsPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
+            {DECISION_BLOCKS[b.name] === "checks" && (
+              <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+                <p className="text-xs font-semibold">Decision: which policy rule sets this block runs <Link to="/admin/policy" className="ml-1 font-normal text-primary hover:underline">Open policy</Link></p>
+                <div className="flex flex-wrap gap-2">
+                  {sortedSets.map((rs) => {
+                    const on = flow.decision.ruleSets.includes(rs.id);
+                    const count = rules.filter((r) => r.active && ruleGroups.some((g) => g.id === r.groupId && g.setId === rs.id)).length;
+                    return (
+                      <button key={rs.id} type="button" disabled={!editable}
+                        onClick={() => setDecision({ ruleSets: on ? flow.decision.ruleSets.filter((x) => x !== rs.id) : [...flow.decision.ruleSets, rs.id] })}
+                        className={`rounded-md border px-2 py-1 text-xs ${on ? "border-primary bg-primary/15 font-medium" : "border-border text-muted-foreground"}`}>
+                        {on ? "✓ " : ""}{rs.order}. {rs.name} · {count} rules
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {num("minAmount", "Min amount (Rs)")}
+                  {num("avgMultiple", "x avg daily credit", 0.5)}
+                  {num("creditSharePct", "Credit share %")}
+                </div>
+              </div>
+            )}
+            {DECISION_BLOCKS[b.name] === "score" && (
+              <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+                <p className="text-xs font-semibold">Decision: score bands for the answers <span className="font-normal text-muted-foreground">({bandText(flow)}) · shared by call and questionnaire</span></p>
+                <div className="flex flex-wrap gap-3">
+                  {num("flagBlock", "Keep blocked above")}
+                  {num("flagReview", "Review from")}
+                  {num("unansweredPoints", "Points per unanswered")}
+                </div>
+                <p className="text-[11px] text-muted-foreground">"If previous block red" triggers use these bands: a score above the block band counts as red.</p>
+              </div>
+            )}
             {b.steps.length === 0 && <p className="text-xs text-muted-foreground">No steps in this block yet.</p>}
             {b.steps.map((s, i) => (
               <div key={s.id} className={`flex flex-wrap items-center gap-3 rounded-md border border-border p-3 ${s.enabled ? "" : "opacity-50"}`}>
