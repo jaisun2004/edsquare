@@ -13,6 +13,8 @@ import { gradeForScore } from "@/data/edd";
 import { STRATEGIES, type Strategy } from "@/data/policy";
 import { useEDD } from "@/lib/edd-store";
 import { describeCondition } from "@/lib/rule-engine";
+import { setUsage } from "@/lib/decision-graph";
+import { useOpsConfig } from "@/lib/ops-config-store";
 
 export const Route = createFileRoute("/admin/policy")({
   head: () => ({
@@ -29,6 +31,8 @@ export const Route = createFileRoute("/admin/policy")({
 function PolicyPage() {
   const { rules, ruleSets, ruleGroups, alerts, attributes, sources, policyVersions, role, moveRuleSet, setStrategy, setRulePriority, publishPolicy, rollbackPolicy, evaluate } = useEDD();
   const admin = role === "admin";
+  const { flows } = useOpsConfig();
+  const used = setUsage(flows);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [alertId, setAlertId] = useState(alerts[0]?.id ?? "");
   const [note, setNote] = useState("");
@@ -72,6 +76,9 @@ function PolicyPage() {
                       <span className="rounded bg-primary px-1.5 text-xs text-primary-foreground">{i + 1}</span> {s.name}
                     </button>
                     <Badge variant="outline">{s.stage}</Badge>
+                    {(used[s.id] ?? []).length
+                      ? <Link to="/admin/workflows" className="text-xs text-muted-foreground hover:underline">Used in: {used[s.id]!.map((f) => `${f} → Data checks`).join(", ")}</Link>
+                      : <span className="text-xs text-destructive">Not linked to any workflow</span>}
                     <div className="ml-auto flex items-center gap-1">
                       <Select value={s.strategy} onValueChange={(v) => setStrategy(s.id, v as Strategy)} disabled={!admin}>
                         <SelectTrigger className="h-8 w-[190px]"><SelectValue /></SelectTrigger>

@@ -30,6 +30,8 @@ export const Route = createFileRoute("/admin/rules/")({
 
 function RulesPage() {
   const { rules, ruleGroups, attributes, sources, toggleRule, approveRule, role, actor } = useEDD();
+  const { flows } = useOpsConfig();
+  const usage = ruleUsage(flows, rules, ruleGroups);
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState("all");
   const [status, setStatus] = useState("live");
