@@ -3,7 +3,7 @@ import { AlertTriangle, ChevronRight, Info } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FEEDS, STEP_LABELS } from "@/data/ops-config";
+import { FEEDS, PRESETS, STEP_LABELS } from "@/data/ops-config";
 import { activeSets, bandText, healthWarnings, ruleSources } from "@/lib/decision-graph";
 import { useEDD } from "@/lib/edd-store";
 import { useOpsConfig } from "@/lib/ops-config-store";
@@ -35,7 +35,7 @@ const Arrow = () => <ChevronRight className="hidden size-4 shrink-0 self-center 
 function Overview() {
   const { flows, queue } = useOpsConfig();
   const { rules, ruleSets, ruleGroups, attributes, sources } = useEDD();
-  const warnings = healthWarnings(flows, rules, ruleSets.length ? ruleGroups : ruleGroups, ruleSets, attributes, sources);
+  const warnings = healthWarnings(flows, rules, ruleGroups, ruleSets, attributes, sources);
 
   return (
     <div className="space-y-4">
@@ -68,7 +68,7 @@ function Overview() {
         const fr = rules.filter((r) => r.active && groupIds.includes(r.groupId));
         const srcIds = new Set(fr.flatMap((r) => ruleSources(r, attributes)));
         const srcs = sources.filter((s) => srcIds.has(s.id));
-        const q = queue.feeds?.[feed.id];
+        const q = queue.perFeed[feed.id];
         return (
           <Card key={feed.id}>
             <CardHeader className="pb-2">
@@ -99,7 +99,8 @@ function Overview() {
               <Arrow />
               <Box to="/admin/queue" title="Queue">
                 <p>{f.desk}</p>
-                {q && <p className="text-muted-foreground">{String((q as { preset?: string }).preset ?? "custom")} ordering</p>}
+                <p className="text-muted-foreground">{q.preset === "custom" ? "Custom ordering" : PRESETS[q.preset].label}</p>
+                <p className="text-muted-foreground">{q.distribution.members.length} people · {q.escalation.length} escalation step(s)</p>
               </Box>
             </CardContent>
           </Card>
