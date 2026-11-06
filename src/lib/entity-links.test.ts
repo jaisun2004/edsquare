@@ -40,7 +40,7 @@ describe("entity links", () => {
 
 describe("demo contact number and recency", () => {
   const base = cases.find((x) => x.id === "CASE-2047")!;
-  const mk = (id: string, account: string, openedAt: string) => ({ ...base, id, account, upi: "—", phone: undefined, deviceId: undefined, customer: id, openedAt, contact: { name: "Tester", phone: "9884800553", lang: "en" } });
+  const mk = (id: string, account: string, openedAt: string) => ({ ...base, id, account, upi: "—", phone: undefined, deviceId: undefined, customer: `Person ${"abcdefghij"[Number(id.slice(-1))]}`, openedAt, contact: { name: "Tester", phone: "9884800553", lang: "en" } });
   it("cases sharing only the dialled demo number are not linked", () => {
     const a = mk("CASE-9001", "XXXX0001", "2026-11-01T00:00:00Z");
     const b = mk("CASE-9002", "XXXX0002", "2026-11-02T00:00:00Z");
