@@ -16,6 +16,7 @@ import { Route as AuditRouteImport } from './routes/audit'
 import { Route as EnforcementRouteImport } from './routes/enforcement'
 import { Route as EngagementRouteImport } from './routes/engagement'
 import { Route as InvestigationsRouteImport } from './routes/investigations'
+import { Route as LookupRouteImport } from './routes/lookup'
 import { Route as NegativeDatabaseRouteImport } from './routes/negative-database'
 import { Route as OutcomesRouteImport } from './routes/outcomes'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -70,6 +71,11 @@ const EngagementRoute = EngagementRouteImport.update({
 const InvestigationsRoute = InvestigationsRouteImport.update({
   id: '/investigations',
   path: '/investigations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LookupRoute = LookupRouteImport.update({
+  id: '/lookup',
+  path: '/lookup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NegativeDatabaseRoute = NegativeDatabaseRouteImport.update({
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/enforcement': typeof EnforcementRoute
   '/engagement': typeof EngagementRoute
   '/investigations': typeof InvestigationsRoute
+  '/lookup': typeof LookupRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/outcomes': typeof OutcomesRoute
   '/reports': typeof ReportsRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/enforcement': typeof EnforcementRoute
   '/engagement': typeof EngagementRoute
   '/investigations': typeof InvestigationsRoute
+  '/lookup': typeof LookupRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/outcomes': typeof OutcomesRoute
   '/reports': typeof ReportsRoute
@@ -239,6 +247,7 @@ export interface FileRoutesById {
   '/enforcement': typeof EnforcementRoute
   '/engagement': typeof EngagementRoute
   '/investigations': typeof InvestigationsRoute
+  '/lookup': typeof LookupRoute
   '/negative-database': typeof NegativeDatabaseRoute
   '/outcomes': typeof OutcomesRoute
   '/reports': typeof ReportsRoute
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/enforcement'
     | '/engagement'
     | '/investigations'
+    | '/lookup'
     | '/negative-database'
     | '/outcomes'
     | '/reports'
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/enforcement'
     | '/engagement'
     | '/investigations'
+    | '/lookup'
     | '/negative-database'
     | '/outcomes'
     | '/reports'
@@ -327,6 +338,7 @@ export interface FileRouteTypes {
     | '/enforcement'
     | '/engagement'
     | '/investigations'
+    | '/lookup'
     | '/negative-database'
     | '/outcomes'
     | '/reports'
@@ -357,6 +369,7 @@ export interface RootRouteChildren {
   EnforcementRoute: typeof EnforcementRoute
   EngagementRoute: typeof EngagementRoute
   InvestigationsRoute: typeof InvestigationsRoute
+  LookupRoute: typeof LookupRoute
   NegativeDatabaseRoute: typeof NegativeDatabaseRoute
   OutcomesRoute: typeof OutcomesRoute
   ReportsRoute: typeof ReportsRoute
@@ -416,6 +429,13 @@ declare module '@tanstack/react-router' {
       path: '/investigations'
       fullPath: '/investigations'
       preLoaderRoute: typeof InvestigationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lookup': {
+      id: '/lookup'
+      path: '/lookup'
+      fullPath: '/lookup'
+      preLoaderRoute: typeof LookupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/negative-database': {
@@ -601,6 +621,7 @@ const rootRouteChildren: RootRouteChildren = {
   EnforcementRoute: EnforcementRoute,
   EngagementRoute: EngagementRoute,
   InvestigationsRoute: InvestigationsRoute,
+  LookupRoute: LookupRoute,
   NegativeDatabaseRoute: NegativeDatabaseRoute,
   OutcomesRoute: OutcomesRoute,
   ReportsRoute: ReportsRoute,

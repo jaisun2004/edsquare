@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Inbox,
@@ -53,6 +53,7 @@ const nav = [
 export function AppShell({ children }: { children: ReactNode }) {
   const { role, setRole, actor, alerts, resetDemo } = useEDD();
   const path = useRouterState({ select: (st) => st.location.pathname });
+  const navigate = useNavigate();
   if (path.startsWith("/q/")) return <>{children}</>;
   const newAlerts = alerts.filter((a) => a.status === "New").length;
   const hidden = new Set<string>();
@@ -110,10 +111,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-3">
-          <div className="relative max-w-sm flex-1">
+          <form
+            className="relative max-w-sm flex-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const v = String(new FormData(e.currentTarget).get("q") ?? "").trim();
+              if (!v) return;
+              if (/^case-\d+$/i.test(v)) navigate({ to: "/cases/$caseId", params: { caseId: v.toUpperCase() } });
+              else navigate({ to: "/lookup", search: { q: v } });
+            }}
+          >
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search cases, accounts, UPI handles…" className="pl-9" />
-          </div>
+            <Input name="q" aria-label="Search" placeholder="Search account, phone, UPI ID, case…" className="pl-9" />
+          </form>
           <div className="ml-auto flex items-center gap-3">
             <div className="relative">
               <Bell className="size-5 text-muted-foreground" />

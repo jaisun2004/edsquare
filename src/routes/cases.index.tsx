@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { STAGES } from "@/data/edd";
 import { Badge } from "@/components/ui/badge";
+import { caseHistory } from "@/lib/entity-links";
 import { MyWorkBody } from "@/components/edd/pages/MyWorkBody";
 import { useEDD } from "@/lib/edd-store";
 import { can } from "@/lib/roles";
@@ -27,7 +28,8 @@ export const Route = createFileRoute("/cases/")({
 });
 
 function CaseQueuePage() {
-  const { cases, demoRuns, alerts, role, moveStage, assignCase } = useEDD();
+  const { cases, demoRuns, alerts, negbase, enforcement, role, moveStage, assignCase } = useEDD();
+  const repeat = (c: (typeof cases)[number]) => caseHistory(c, { cases, alerts, negbase, enforcement }).summary;
   const [grade, setGrade] = useState("all");
 
   const howGot = (id: string) => {
@@ -137,6 +139,7 @@ function CaseQueuePage() {
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">
                         <Link to="/cases/$caseId" params={{ caseId: c.id }} className="hover:underline">{c.id}</Link>
+                        {(() => { const s = repeat(c); return s.priorCases > 0 ? <Badge variant="outline" className={`ml-2 ${s.blocked ? "border-destructive/40 text-destructive" : ""}`} title={`${s.priorCases} linked case(s), ${s.blocked} blocked`}>Repeat · {s.priorCases}</Badge> : null; })()}
                         
                         
                         <p className="max-w-[260px] text-xs font-normal text-muted-foreground">{howGot(c.id)}</p>

@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useEDD } from "@/lib/edd-store";
+import { Link } from "@tanstack/react-router";
+import { findLinked, identifiersOfNegbase } from "@/lib/entity-links";
 
 export const Route = createFileRoute("/negative-database")({
   head: () => ({
@@ -24,7 +26,8 @@ export const Route = createFileRoute("/negative-database")({
 });
 
 function NegativeDatabasePage() {
-  const { negbase, cases, attachEvidence, role } = useEDD();
+  const { negbase, cases, alerts, enforcement, attachEvidence, role } = useEDD();
+  const linkedCount = (r: (typeof negbase)[number]) => findLinked(identifiersOfNegbase(r), { cases, alerts, negbase: [], enforcement }).cases.filter((m) => m.strength === "strong").length;
   const [query, setQuery] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
   const [attachTo, setAttachTo] = useState<string>("");
@@ -80,6 +83,7 @@ function NegativeDatabasePage() {
                 <TableHead>First seen</TableHead>
                 <TableHead>Last seen</TableHead>
                 <TableHead>Associated</TableHead>
+                <TableHead>Linked cases</TableHead>
                 <TableHead className="text-right">Evidence</TableHead>
               </TableRow>
             </TableHeader>
@@ -93,6 +97,7 @@ function NegativeDatabasePage() {
                   <TableCell className="text-sm text-muted-foreground">{formatDateTime(r.firstSeen)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatDateTime(r.lastSeen)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{r.associated.join(", ")}</TableCell>
+                  <TableCell className="text-sm"><Link to="/lookup" search={{ q: r.identifier }} className="text-primary hover:underline">{linkedCount(r)} · Network</Link></TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" variant="outline" onClick={() => setDetailId(r.id)}>View</Button>
                   </TableCell>
