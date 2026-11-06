@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertHistoryStrip } from "@/components/edd/AlertHistory";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { AlertResult } from "@/lib/alert-journey";
@@ -129,6 +130,7 @@ function AlertsPage() {
                   <p className="text-muted-foreground">{open.alert.source} · received {formatDateTime(open.alert.receivedAt)}</p>
                   <p className="mt-2">{open.alert.trigger}</p>
                 </div>
+                <AlertHistoryStrip alert={open.alert} />
                 {open.j.result === "System blocked" && (
                   <div className="rounded-md border border-destructive bg-destructive/10 p-3">
                     <p className="font-medium text-destructive">Transaction blocked by the system</p>

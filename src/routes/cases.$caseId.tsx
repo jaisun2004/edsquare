@@ -21,6 +21,8 @@ import { alertJourney } from "@/lib/alert-journey";
 import { EngagementSummary } from "@/components/edd/DemoRuns";
 import { CaseOutreach, CaseStepSummary } from "@/components/edd/CaseOutreach";
 import type { Channel, Recommendation } from "@/data/edd";
+import { HistoryStrip, LinkedHistoryPanel } from "@/components/edd/LinkedHistory";
+import { caseHistory, identifiersOfCase } from "@/lib/entity-links";
 
 export const Route = createFileRoute("/cases/$caseId")({
   head: () => ({
@@ -123,11 +125,13 @@ function CaseDetailPage() {
           <TabsTrigger value="intel">Intelligence &amp; Enrichment</TabsTrigger>
           <TabsTrigger value="engagement">Engagement</TabsTrigger>
           <TabsTrigger value="investigation">Investigation</TabsTrigger>
+          <TabsTrigger value="network">Linked history{history.summary.priorCases ? ` (${history.summary.priorCases})` : ""}</TabsTrigger>
           <TabsTrigger value="timeline">Activity Timeline</TabsTrigger>
           <TabsTrigger value="docs">Documents &amp; Notes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div className="lg:col-span-2"><HistoryStrip summary={history.summary} query={item.account} /></div>
           <CaseStepSummary item={item} run={run} />
           {run && <EngagementSummary run={run} />}
           <Card>
@@ -273,6 +277,10 @@ function CaseDetailPage() {
 
         <TabsContent value="timeline" className="mt-4">
           <CaseTimeline entries={item.timeline} />
+        </TabsContent>
+
+        <TabsContent value="network" className="mt-4">
+          <LinkedHistoryPanel query={identifiersOfCase(item)} result={history.result} enforcement={enforcement} />
         </TabsContent>
 
         <TabsContent value="docs" className="mt-4 grid gap-4 lg:grid-cols-2">
