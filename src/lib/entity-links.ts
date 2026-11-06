@@ -199,7 +199,11 @@ export function buildGraph(query: Ident[], result: LinkedResult, enforcement: En
     else if (center) nodes.get(key)!.center = true;
     return key;
   };
-  query.filter((q) => opts.includeNames || q.kind !== "name").forEach((q) => identNode(q, true));
+  // A number searched as both phone and account shows once (as the phone).
+  query
+    .filter((q) => opts.includeNames || q.kind !== "name")
+    .filter((q, _, all) => !(q.kind === "account" && all.some((o) => o.kind === "phone" && o.value === q.value)))
+    .forEach((q) => identNode(q, true));
   for (const m of result.cases) {
     const d = caseDecision(m.item, enforcement).label;
     const key = `c:${m.item.id}`;
