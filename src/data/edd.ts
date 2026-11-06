@@ -46,6 +46,9 @@ export interface Alert {
   account: string;
   upi: string;
   customer: string;
+  /** Customer mobile on record (optional; used for linked history). */
+  phone?: string | undefined;
+  deviceId?: string | undefined;
   trigger: string;
   receivedAt: string;
   preliminarySignal: RiskGrade;
@@ -124,6 +127,9 @@ export interface EDDCase {
   customer: string;
   account: string;
   upi: string;
+  /** Customer mobile on record (optional; used for linked history). */
+  phone?: string | undefined;
+  deviceId?: string | undefined;
   category: Category;
   stage: Stage;
   riskScore: number;
@@ -225,15 +231,15 @@ const hrs = (h: number) => new Date(now - h * 3600_000).toISOString();
 const inHrs = (h: number) => new Date(now + h * 3600_000).toISOString();
 
 export const alerts: Alert[] = [
-  { id: "AL-1041", source: "Negative Database", account: "XXXX4417", upi: "rahul.mehra@okaxis", customer: "Rahul Mehra", trigger: "UPI handle found on betting collection page", receivedAt: hrs(2), preliminarySignal: "VH", status: "New" },
-  { id: "AL-1042", feed: "NPCI", source: "Fraud / AML Engine", account: "XXXX9082", upi: "sneha.rao1@ybl", customer: "Sneha Rao", trigger: "Rapid pass-through, 22 counterparties in 3 days", receivedAt: hrs(4), preliminarySignal: "H", status: "New" },
+  { id: "AL-1041", source: "Negative Database", account: "XXXX4417", upi: "rahul.mehra@okaxis", customer: "Rahul Mehra", phone: "9811004821", trigger: "UPI handle found on betting collection page", receivedAt: hrs(2), preliminarySignal: "VH", status: "New" },
+  { id: "AL-1042", feed: "NPCI", source: "Fraud / AML Engine", account: "XXXX9082", upi: "sneha.rao1@ybl", customer: "Sneha Rao", phone: "9845012345", deviceId: "DEV-A17F", trigger: "Rapid pass-through, 22 counterparties in 3 days", receivedAt: hrs(4), preliminarySignal: "H", status: "New" },
   { id: "AL-1043", source: "Risk Model", account: "XXXX1120", upi: "kmurthy@okhdfcbank", customer: "K. Murthy", trigger: "Model score 0.71 — mule propensity", receivedAt: hrs(6), preliminarySignal: "M", status: "New" },
-  { id: "AL-1044", feed: "I4C", source: "CRM Complaint", account: "XXXX3388", upi: "quickjobs.hr@paytm", customer: "Imran Shaikh", trigger: "3 victim complaints — fake job offers", receivedAt: hrs(9), preliminarySignal: "VH", status: "New" },
+  { id: "AL-1044", feed: "I4C", source: "CRM Complaint", account: "XXXX3388", upi: "quickjobs.hr@paytm", customer: "Imran Shaikh", phone: "9930077881", trigger: "3 victim complaints — fake job offers", receivedAt: hrs(9), preliminarySignal: "VH", status: "New" },
   { id: "AL-1045", source: "External Intelligence", account: "XXXX7761", upi: "deepa.k@ibl", customer: "Deepa Krishnan", trigger: "Handle referenced in scam Telegram channel", receivedAt: hrs(12), preliminarySignal: "H", status: "New" },
   { id: "AL-1046", source: "Risk Model", account: "XXXX5093", upi: "arvind.s@okicici", customer: "Arvind Suresh", trigger: "Salary account, benign velocity uplift", receivedAt: hrs(18), preliminarySignal: "L", status: "New" },
   { id: "AL-1047", source: "Fraud / AML Engine", account: "XXXX2210", upi: "shopmarttrend@ybl", customer: "Nikhil Bansal", trigger: "Structuring below ₹50k threshold", receivedAt: hrs(22), preliminarySignal: "H", status: "New" },
   { id: "AL-1048", source: "Negative Database", account: "XXXX6644", upi: "trader.pro9@okaxis", customer: "Vikas Yadav", trigger: "Fuzzy match to known investment-scam handle", receivedAt: hrs(26), preliminarySignal: "M", status: "New" },
-  { id: "AL-1049", feed: "NPCI", source: "Risk Model", account: "XXXX8890", upi: "meena.g@okhdfcbank", customer: "Meena Gupta", trigger: "Dormant 120d then ₹4.2L throughput", receivedAt: hrs(30), preliminarySignal: "H", status: "New" },
+  { id: "AL-1049", feed: "NPCI", source: "Risk Model", account: "XXXX8890", upi: "meena.g@okhdfcbank", customer: "Meena Gupta", phone: "9876500021", deviceId: "DEV-77C2", trigger: "Dormant 120d then ₹4.2L throughput", receivedAt: hrs(30), preliminarySignal: "H", status: "New" },
   { id: "AL-1050", feed: "I4C", source: "CRM Complaint", account: "XXXX7005", upi: "prime.subs@ybl", customer: "Rohit Nair", trigger: "Unauthorised subscription debits reported", receivedAt: hrs(34), preliminarySignal: "M", status: "New" },
 ];
 
@@ -277,7 +283,7 @@ export const cases: EDDCase[] = [
     notes: [], documents: [], recommendation: "Further Investigation",
   },
   {
-    id: "CASE-2043", customer: "Imran Shaikh", account: "XXXX3388", upi: "quickjobs.hr@paytm", category: "Job Scam",
+    id: "CASE-2043", customer: "Imran Shaikh", account: "XXXX3388", upi: "quickjobs.hr@paytm", phone: "9930077881", category: "Job Scam",
     stage: "Engagement", riskScore: 91, grade: "VH", assignee: "Arjun Rao", openedAt: hrs(20), slaDueAt: inHrs(-2),
     signals: [
       { label: "Victim complaints", weight: 15, detail: "3 CRM complaints in 5 days" },
@@ -347,7 +353,7 @@ export const cases: EDDCase[] = [
     recommendation: "Further Investigation",
   },
   {
-    id: "CASE-2048", customer: "Meena Gupta", account: "XXXX8890", upi: "meena.g@okhdfcbank", category: "Mule",
+    id: "CASE-2048", customer: "Meena Gupta", account: "XXXX8890", upi: "meena.g@okhdfcbank", phone: "9876500021", deviceId: "DEV-77C2", category: "Mule",
     stage: "Engagement", riskScore: 71, grade: "H", assignee: "Priya Nair", openedAt: hrs(33), slaDueAt: inHrs(2),
     signals: [{ label: "Dormant then active", weight: 9, detail: "120d dormancy, ₹4.2L throughput" }, { label: "Device shared", weight: 10, detail: "3 CIFs on same device" }],
     rulesTriggered: ["R-04", "R-09"], enrichment: baseEnrichment(),
@@ -372,7 +378,7 @@ export const cases: EDDCase[] = [
     recommendation: "Block",
   },
   {
-    id: "CASE-2051", customer: "Lata Sharma", account: "XXXX2277", upi: "lata.sharma@okaxis", category: "Mule",
+    id: "CASE-2051", customer: "Lata Sharma", account: "XXXX2277", upi: "lata.sharma@okaxis", phone: "9876500021", deviceId: "DEV-77C2", category: "Mule",
     stage: "Closed", riskScore: 81, grade: "VH", assignee: "Arjun Rao", openedAt: hrs(80), slaDueAt: hrs(30),
     signals: [{ label: "Fan-out pattern", weight: 12, detail: "24 payees in 4 days" }],
     rulesTriggered: ["R-03", "R-01"], enrichment: baseEnrichment(), engagement: [],
@@ -381,7 +387,7 @@ export const cases: EDDCase[] = [
     recommendation: "Block",
   },
   {
-    id: "CASE-2052", customer: "Sneha Rao", account: "XXXX9082", upi: "sneha.rao1@ybl", category: "Betting",
+    id: "CASE-2052", customer: "Sneha Rao", account: "XXXX9082", upi: "sneha.rao1@ybl", phone: "9845012345", deviceId: "DEV-A17F", category: "Betting",
     stage: "Decision Pending", riskScore: 79, grade: "H", assignee: "Priya Nair", openedAt: hrs(24), slaDueAt: inHrs(-1),
     signals: [{ label: "Rapid pass-through", weight: 14, detail: "88% withdrawn within an hour" }, { label: "High-risk MCC", weight: 6, detail: "Gaming merchants" }],
     rulesTriggered: ["R-01", "R-17"], enrichment: baseEnrichment(),
@@ -389,6 +395,25 @@ export const cases: EDDCase[] = [
     timeline: [{ id: "T1", at: hrs(24), actor: "System", action: "Case created", detail: "From alert AL-1042" }], notes: [], documents: [],
     rationale: { text: "Customer admission plus behavioural pattern support enforcement action.", evidence: true, policy: true, confidence: "High", savedBy: "Priya Nair" },
     recommendation: "Block",
+  },
+  // Earlier, closed cases — give the linked-history view real past decisions.
+  {
+    id: "CASE-1987", customer: "Imran Shaikh", account: "XXXX3388", upi: "imran.s@okicici", phone: "9930077881", category: "Job Scam",
+    stage: "Closed", riskScore: 84, grade: "VH", assignee: "Arjun Rao", openedAt: hrs(24 * 140), slaDueAt: hrs(24 * 139),
+    signals: [{ label: "Victim complaints", weight: 15, detail: "2 complaints — registration fee fraud" }],
+    rulesTriggered: ["R-14"], enrichment: baseEnrichment(), engagement: [],
+    timeline: [{ id: "T1", at: hrs(24 * 138), actor: "Kavita Menon", action: "Decision approved", detail: "Block approved (VH)" }], notes: [], documents: [],
+    decision: { outcome: "Block", by: "Arjun Rao", approvedBy: "Kavita Menon", at: hrs(24 * 138), reason: "Collected 'registration fees' from job seekers; customer could not explain credits." },
+    recommendation: "Block",
+  },
+  {
+    id: "CASE-1994", customer: "Sneha Rao", account: "XXXX9082", upi: "sneha.rao1@ybl", phone: "9845012345", deviceId: "DEV-A17F", category: "Betting",
+    stage: "Closed", riskScore: 52, grade: "M", assignee: "Priya Nair", openedAt: hrs(24 * 95), slaDueAt: hrs(24 * 94),
+    signals: [{ label: "High-risk MCC", weight: 6, detail: "Gaming merchants" }],
+    rulesTriggered: ["R-17"], enrichment: baseEnrichment(), engagement: [{ id: "E1", channel: "AI Call", status: "Responded", at: hrs(24 * 94), outcome: "Explained credits as family transfers" }],
+    timeline: [{ id: "T1", at: hrs(24 * 94), actor: "Priya Nair", action: "Decision recorded", detail: "Unblock — source of funds explained" }], notes: [], documents: [],
+    decision: { outcome: "Unblock", by: "Priya Nair", at: hrs(24 * 94), reason: "Customer explained credits as family transfers with proof." },
+    recommendation: "Unblock",
   },
 ];
 
