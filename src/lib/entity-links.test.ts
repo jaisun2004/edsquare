@@ -37,3 +37,22 @@ describe("entity links", () => {
     expect(s.possible).toBeGreaterThan(0);
   });
 });
+
+describe("demo contact number and recency", () => {
+  const base = cases.find((x) => x.id === "CASE-2047")!;
+  const mk = (id: string, account: string, openedAt: string) => ({ ...base, id, account, upi: "—", phone: undefined, deviceId: undefined, customer: id, openedAt, contact: { name: "Tester", phone: "9884800553", lang: "en" } });
+  it("cases sharing only the dialled demo number are not linked", () => {
+    const a = mk("CASE-9001", "XXXX0001", "2026-11-01T00:00:00Z");
+    const b = mk("CASE-9002", "XXXX0002", "2026-11-02T00:00:00Z");
+    const { result } = caseHistory(a, { cases: [a, b], alerts: [], negbase: [], enforcement: [] });
+    expect(result.cases).toHaveLength(0);
+  });
+  it("linked cases come newest first", () => {
+    const a = mk("CASE-9001", "XXXX0001", "2026-10-01T00:00:00Z");
+    const b = mk("CASE-9002", "XXXX0001", "2026-10-05T00:00:00Z");
+    const c = mk("CASE-9003", "XXXX0001", "2026-11-03T00:00:00Z");
+    const { result, summary } = caseHistory(a, { cases: [a, b, c], alerts: [], negbase: [], enforcement: [] });
+    expect(result.cases.map((m) => m.item.id)).toEqual(["CASE-9003", "CASE-9002"]);
+    expect(summary.last?.caseId).toBe("CASE-9003");
+  });
+});

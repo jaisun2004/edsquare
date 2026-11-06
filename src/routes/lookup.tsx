@@ -73,8 +73,8 @@ function LookupPage() {
             <Stat label="Linked cases" value={String(summary.priorCases)} sub={summary.possible ? `+${summary.possible} possible` : undefined} />
             <Stat label="Blocked before" value={String(summary.blocked)} tone={summary.blocked ? "red" : undefined} />
             <Stat label="Negative DB hits" value={String(summary.negbaseHits)} tone={summary.negbaseHits ? "red" : undefined} />
-            <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Last decision</p>
-              {summary.last ? <div className="mt-1 flex items-center gap-2"><DecisionBadge label={summary.last.decision} /><Link to="/cases/$caseId" params={{ caseId: summary.last.caseId }} className="text-sm text-primary hover:underline">{summary.last.caseId}</Link></div> : <p className="mt-1 text-lg font-semibold">—</p>}
+            <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Most recent linked case</p>
+              {summary.last ? <div className="mt-1 flex items-center gap-2"><DecisionBadge label={summary.last.decision} /><Link to="/cases/$caseId" params={{ caseId: summary.last.caseId }} className="text-sm text-primary hover:underline">{summary.last.caseId}</Link></div><p className="mt-1 text-xs text-muted-foreground">{formatDateTime(summary.last.at)}</p> : <p className="mt-1 text-lg font-semibold">—</p>}
             </CardContent></Card>
           </div>
           <LinkedHistoryPanel query={query} result={result} enforcement={enforcement} onPivot={go} />
