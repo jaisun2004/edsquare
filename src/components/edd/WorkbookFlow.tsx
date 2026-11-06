@@ -395,7 +395,6 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
                 {alert.balance !== undefined && <p>Balance: Rs {alert.balance.toLocaleString("en-IN")}</p>}
               </div>
               <p className={`rounded-md border px-3 py-2 text-xs ${negbase ? "border-destructive/40 text-destructive" : "text-muted-foreground"}`}>Negative Database: {nbText}</p>
-              <PriorHistory account={alert.account} phone={raw} />
               <ContactBox raw={raw} setRaw={setRaw} name={cname} setName={setCname} lang={lang} setLang={setLang} disabled={running} />
               {!running ? <Button className="w-full" onClick={start} disabled={!canRun}><Play className="mr-2 h-4 w-4" />{store.loaded ? "Run flow" : "Loading demo…"}</Button> : <Button className="w-full" variant="outline" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />New run</Button>}
             </CardContent>
@@ -553,6 +552,7 @@ export function WorkbookFlow({ initialAlert, fromAlert, auto, custom }: { initia
                 <p className="text-muted-foreground">{l.text}</p>
               </div>
             ))}
+            {(final || caseId) && <div className="border-t pt-2"><p className="mb-1 font-semibold">Case history</p><PriorHistory account={alert.account} excludeCaseId={caseId ? store.currentCaseId(caseId) : undefined} /></div>}
             {caseId && <p className="pt-2">Case: <Link to="/cases/$caseId" params={{ caseId }} className="text-primary underline">{caseId}</Link> · <Link to="/audit" className="text-primary underline">Audit Trail</Link></p>}
             <p className="border-t pt-2 text-muted-foreground">Red = continue block · Amber = next step · Green = unblock · Manual = review queue</p>
           </CardContent>
