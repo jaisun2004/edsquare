@@ -38,7 +38,7 @@ export const Route = createFileRoute("/cases/$caseId")({
 
 function CaseDetailPage() {
   const { caseId } = Route.useParams();
-  const { cases, demoRuns, alerts, enforcement, role, requestEnrichment, startEngagement, saveRationale, decide, addNote } = useEDD();
+  const { cases, demoRuns, alerts, negbase, enforcement, role, requestEnrichment, startEngagement, saveRationale, decide, addNote } = useEDD();
   const item = cases.find((c) => c.id === caseId);
   const run = demoRuns.find((r) => r.caseId === caseId);
 
@@ -58,6 +58,7 @@ function CaseDetailPage() {
       </div>
     );
   }
+  const history = caseHistory(item, { cases, alerts, negbase, enforcement });
 
   const srcAlert = alerts.find((a) => a.caseId === item.id) ?? alerts.find((a) => a.id === run?.alertId);
   const journey = srcAlert ? alertJourney(srcAlert, cases, enforcement, demoRuns) : undefined;
