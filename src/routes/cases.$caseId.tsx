@@ -281,7 +281,8 @@ function CaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="network" className="mt-4">
-          <LinkedHistoryPanel query={identifiersOfCase(item)} result={history.result} enforcement={enforcement} />
+          {item.contact?.phone && <p className="mb-3 text-xs text-muted-foreground">Contacted number (demo): {item.contact.phone} — not used to link cases, since it is the number dialled in the demo, not the customer's own.</p>}
+          <LinkedHistoryPanel query={identifiersOfCase(item)} result={history.result} enforcement={enforcement} refDate={item.openedAt} />
         </TabsContent>
 
         <TabsContent value="docs" className="mt-4 grid gap-4 lg:grid-cols-2">
