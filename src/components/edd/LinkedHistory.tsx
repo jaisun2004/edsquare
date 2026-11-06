@@ -2,12 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { AlertTriangle, History, Network, ShieldAlert } from "lucide-react";
 import { useMemo } from "react";
 
-import { CategoryBadge, formatDateTime } from "@/components/edd/chips";
+import { CategoryBadge, formatDateTime, timeAgo } from "@/components/edd/chips";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { EnforcementEntry } from "@/data/edd";
-import { KIND_LABEL, buildGraph, caseDecision, type CaseDecision, type HistorySummary, type Ident, type LinkReason, type LinkedResult } from "@/lib/entity-links";
+import { KIND_LABEL, buildGraph, relationTo, caseDecision, type CaseDecision, type HistorySummary, type Ident, type LinkReason, type LinkedResult } from "@/lib/entity-links";
 import { NetworkGraph } from "./NetworkGraph";
 
 export function DecisionBadge({ label }: { label: CaseDecision }) {
@@ -58,7 +58,8 @@ export function HistoryStrip({ summary, query, compact }: { summary: HistorySumm
 }
 
 /** Full linked-history panel: cases, alerts, Negative DB, and network graph. */
-export function LinkedHistoryPanel({ query, result, enforcement, showGraph = true, onPivot }: { query: Ident[]; result: LinkedResult; enforcement: EnforcementEntry[]; showGraph?: boolean; onPivot?: (value: string) => void }) {
+export function LinkedHistoryPanel({ query, result, enforcement, showGraph = true, onPivot, refDate }: { query: Ident[]; result: LinkedResult; enforcement: EnforcementEntry[]; showGraph?: boolean; onPivot?: (value: string) => void; refDate?: string | undefined }) {
+  const latestId = result.cases.find((m) => m.strength === "strong")?.item.id ?? result.cases[0]?.item.id;
   const graph = useMemo(() => buildGraph(query, result, enforcement), [query, result, enforcement]);
   return (
     <div className="grid gap-4">
@@ -72,15 +73,17 @@ export function LinkedHistoryPanel({ query, result, enforcement, showGraph = tru
         <CardHeader><CardTitle className="text-sm">Linked cases ({result.cases.length})</CardTitle></CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader><TableRow><TableHead>Case</TableHead><TableHead>Customer</TableHead><TableHead>Opened</TableHead><TableHead>Category</TableHead><TableHead>Decision</TableHead><TableHead>Linked by</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Case</TableHead><TableHead>Customer</TableHead><TableHead>Opened (newest first)</TableHead><TableHead>Category</TableHead><TableHead>Decision</TableHead><TableHead>Linked by</TableHead></TableRow></TableHeader>
             <TableBody>
               {result.cases.map((m) => {
                 const d = caseDecision(m.item, enforcement);
                 return (
                   <TableRow key={m.item.id}>
-                    <TableCell><Link to="/cases/$caseId" params={{ caseId: m.item.id }} className="font-medium text-primary hover:underline">{m.item.id}</Link></TableCell>
+                    <TableCell><Link to="/cases/$caseId" params={{ caseId: m.item.id }} className="font-medium text-primary hover:underline">{m.item.id}</Link>
+                      {m.item.id === latestId && <Badge className="ml-2">Latest</Badge>}
+                      {refDate && <div className="text-xs text-muted-foreground">{relationTo(refDate, m.item.openedAt) === "before" ? "Earlier than this case" : "After this case"}</div>}</TableCell>
                     <TableCell>{m.item.customer}<div className="text-xs text-muted-foreground">{m.item.account}</div></TableCell>
-                    <TableCell className="text-xs">{formatDateTime(m.item.openedAt)}</TableCell>
+                    <TableCell className="text-xs">{formatDateTime(m.item.openedAt)}<div className="text-muted-foreground">{timeAgo(m.item.openedAt)}</div></TableCell>
                     <TableCell><CategoryBadge category={m.item.category} /></TableCell>
                     <TableCell><DecisionBadge label={d.label} />{d.reason && <div className="mt-1 max-w-[220px] text-xs text-muted-foreground">{d.reason}</div>}</TableCell>
                     <TableCell><LinkChips links={m.linkedBy} /></TableCell>

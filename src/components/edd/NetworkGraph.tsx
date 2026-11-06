@@ -10,7 +10,7 @@ export function NetworkGraph({ nodes, edges, onPivot }: { nodes: GraphNode[]; ed
   const navigate = useNavigate();
   if (nodes.length <= 1) return <p className="py-6 text-center text-sm text-muted-foreground">Nothing linked yet.</p>;
   const center = nodes.filter((n) => n.center);
-  const records = nodes.filter((n) => n.type !== "ident");
+  const records = nodes.filter((n) => n.type !== "ident").sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
   const outer = nodes.filter((n) => n.type === "ident" && !n.center);
   const pos = new Map<string, { x: number; y: number }>();
   const ring = (list: GraphNode[], rx: number, ry: number, offset = 0) =>
@@ -45,7 +45,10 @@ export function NetworkGraph({ nodes, edges, onPivot }: { nodes: GraphNode[]; ed
               {n.type === "ident" ? (
                 <circle r={n.center ? 16 : 10} fill={fill(n)} stroke="var(--background)" strokeWidth={2} />
               ) : (
-                <rect x={-14} y={-14} width={28} height={28} rx={6} fill={fill(n)} stroke="var(--background)" strokeWidth={2} />
+                <>
+                  <rect x={-14} y={-14} width={28} height={28} rx={6} fill={fill(n)} stroke={n.latest ? "var(--foreground)" : "var(--background)"} strokeWidth={n.latest ? 3 : 2} />
+                  {n.latest && <text y={-22} textAnchor="middle" className="fill-primary text-[10px] font-semibold uppercase">Latest</text>}
+                </>
               )}
               <text y={n.center ? 30 : 26} textAnchor="middle" className="fill-foreground text-[11px] font-medium">{n.label}</text>
               {n.sub && <text y={n.center ? 42 : 38} textAnchor="middle" className="fill-muted-foreground text-[10px]">{n.sub}</text>}
@@ -58,6 +61,7 @@ export function NetworkGraph({ nodes, edges, onPivot }: { nodes: GraphNode[]; ed
         <span className="flex items-center gap-1"><span className="size-3 rounded bg-destructive" /> Blocked / Negative DB</span>
         <span className="flex items-center gap-1"><span className="size-3 rounded bg-success" /> Unblocked</span>
         <span className="flex items-center gap-1"><span className="size-3 rounded bg-warning" /> Open</span>
+        <span>Dark outline = most recent case.</span>
         <span>Dashed line = possible match. Click a case to open it, or an identifier to search it.</span>
       </div>
     </div>

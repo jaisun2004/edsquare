@@ -51,8 +51,9 @@ function id(kind: IdKind, raw: string | undefined): Ident[] {
   return v ? [{ kind, value: v }] : [];
 }
 
+/** Customer identifiers only. The number dialled in a demo run (`contact.phone`) is NOT the customer's and never links cases. */
 export function identifiersOfCase(c: EDDCase): Ident[] {
-  return dedupe([...id("account", c.account), ...id("upi", c.upi), ...id("phone", c.phone), ...id("phone", c.contact?.phone), ...id("device", c.deviceId), ...id("name", c.customer)]);
+  return dedupe([...id("account", c.account), ...id("upi", c.upi), ...id("phone", c.phone), ...id("device", c.deviceId), ...id("name", c.customer)]);
 }
 export function identifiersOfAlert(a: Alert): Ident[] {
   return dedupe([...id("account", a.account), ...id("upi", a.upi), ...id("phone", a.phone), ...id("device", a.deviceId), ...id("name", a.customer)]);
@@ -116,8 +117,8 @@ export interface LinkedResult {
 }
 
 export function findLinked(query: Ident[], data: LinkData, opts: { excludeCaseId?: string | undefined; excludeAlertId?: string | undefined } = {}): LinkedResult {
-  const byStrengthThenDate = <T,>(date: (t: T) => string) => (a: Match<T>, b: Match<T>) =>
-    a.strength !== b.strength ? (a.strength === "strong" ? -1 : 1) : date(b.item).localeCompare(date(a.item));
+  // Newest first; strength is shown as a badge.
+  const byStrengthThenDate = <T,>(date: (t: T) => string) => (a: Match<T>, b: Match<T>) => date(b.item).localeCompare(date(a.item));
   const cases = data.cases
     .filter((c) => c.id !== opts.excludeCaseId)
     .map((c) => toMatch(c, link(query, identifiersOfCase(c))))
@@ -171,6 +172,11 @@ export function summarise(result: LinkedResult, enforcement: EnforcementEntry[])
   };
 }
 
+/** Whether a linked record came before or after a reference date. */
+export function relationTo(refIso: string, iso: string): "before" | "after" {
+  return iso <= refIso ? "before" : "after";
+}
+
 export function caseHistory(c: EDDCase, data: LinkData) {
   const result = findLinked(identifiersOfCase(c), data, { excludeCaseId: c.id });
   return { result, summary: summarise(result, data.enforcement) };
@@ -187,7 +193,7 @@ export function priorHistoryPoints(s: HistorySummary, pointsPerBlocked = 5): num
 }
 
 // ---------- Graph ----------
-export interface GraphNode { id: string; type: "ident" | "case" | "negbase"; label: string; sub?: string | undefined; kind?: IdKind | undefined; tone: "red" | "green" | "amber" | "neutral"; center?: boolean | undefined }
+export interface GraphNode { latest?: boolean | undefined; order?: number | undefined; id: string; type: "ident" | "case" | "negbase"; label: string; sub?: string | undefined; kind?: IdKind | undefined; tone: "red" | "green" | "amber" | "neutral"; center?: boolean | undefined }
 export interface GraphEdge { from: string; to: string; strength: Strength }
 
 export function buildGraph(query: Ident[], result: LinkedResult, enforcement: EnforcementEntry[], opts: { includeNames?: boolean } = {}): { nodes: GraphNode[]; edges: GraphEdge[] } {
@@ -204,10 +210,12 @@ export function buildGraph(query: Ident[], result: LinkedResult, enforcement: En
     .filter((q) => opts.includeNames || q.kind !== "name")
     .filter((q, _, all) => !(q.kind === "account" && all.some((o) => o.kind === "phone" && o.value === q.value)))
     .forEach((q) => identNode(q, true));
-  for (const m of result.cases) {
+  const latestId = result.cases.find((m) => m.strength === "strong")?.item.id ?? result.cases[0]?.item.id;
+  for (const [idx, m] of result.cases.entries()) {
     const d = caseDecision(m.item, enforcement).label;
     const key = `c:${m.item.id}`;
-    nodes.set(key, { id: key, type: "case", label: m.item.id, sub: `${m.item.customer} · ${d}`, tone: d === "Blocked" ? "red" : d === "Unblocked" || d === "Verified" ? "green" : "amber" });
+    const date = new Date(m.item.openedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
+    nodes.set(key, { id: key, type: "case", order: idx, latest: m.item.id === latestId, label: m.item.id, sub: `${date} · ${d}`, tone: d === "Blocked" ? "red" : d === "Unblocked" || d === "Verified" ? "green" : "amber" });
     for (const i of identifiersOfCase(m.item)) {
       if (i.kind === "name" && !opts.includeNames) continue;
       const linked = m.linkedBy.find((l) => l.kind === i.kind && l.value === i.value);
