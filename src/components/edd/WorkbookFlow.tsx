@@ -23,6 +23,7 @@ import { QuestionnaireWindow } from "@/components/edd/live/QuestionnaireWindow";
 import { caseEvents, intakeEvents, scoreEvents, type FlowEvent } from "@/lib/flow-events";
 import { ContactBox, PHONE_KEY, RealVoicePanel, RealWhatsAppPanel, validPhone, type ChannelLog, type Contact } from "@/components/edd/RealChannels";
 import { normalName, normalisePhone } from "@/lib/voice";
+import { PriorHistory } from "@/components/edd/AlertHistory";
 
 const STEPS = SHEET_STEPS;
 type Phase = "idle" | "checks" | "voice" | "wa_offer" | "bitly" | "notify" | "human" | "verified" | "done";

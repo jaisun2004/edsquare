@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { STAGES } from "@/data/edd";
 import { Badge } from "@/components/ui/badge";
+import { caseHistory } from "@/lib/entity-links";
 import { MyWorkBody } from "@/components/edd/pages/MyWorkBody";
 import { useEDD } from "@/lib/edd-store";
 import { can } from "@/lib/roles";
